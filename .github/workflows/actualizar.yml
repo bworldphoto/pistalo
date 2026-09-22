@@ -1,0 +1,37 @@
+name: Actualizar disponibilidad de pistas
+
+on:
+  schedule:
+    # Se ejecuta al principio de cada hora (formato cron: minuto hora * * *)
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    # Esto permite lanzarlo tú a mano desde la pestaña "Actions" de GitHub,
+    # sin tener que esperar a la próxima hora en punto.
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install requests beautifulsoup4
+
+      - name: Ejecutar el scraper
+        run: python actualizar_datos.py
+
+      - name: Guardar los datos actualizados en el repositorio
+        run: |
+          git config user.name "Pistalo Bot"
+          git config user.email "bot@pistalo.local"
+          git add data/disponibilidad.json
+          git diff --staged --quiet || git commit -m "Actualizar disponibilidad $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push
