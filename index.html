@@ -383,10 +383,7 @@
         <div class="field">
           <label for="city">Ciudad</label>
           <select id="city">
-            <option value="madrid">Madrid</option>
-            <option value="barcelona">Barcelona</option>
             <option value="valencia">Valencia</option>
-            <option value="sevilla">Sevilla</option>
           </select>
         </div>
         <div class="field">
@@ -419,11 +416,6 @@
 <div class="wrap">
   <div class="toolbar">
     <div><h2 style="display:inline;">Resultados</h2><span class="results-count" id="resultsCount"></span></div>
-    <div class="segmented">
-      <button data-sort="precio" aria-pressed="true">Precio</button>
-      <button data-sort="distancia" aria-pressed="false">Distancia</button>
-      <button data-sort="valoracion" aria-pressed="false">Valoración</button>
-    </div>
   </div>
 
   <ul class="list" id="resultsList"></ul>
@@ -488,34 +480,6 @@
 </footer>
 
 <script>
-  const CLUBS = {
-    madrid: [
-      { name: "Padel Club Retiro", zona: "Retiro · 1.2 km", distancia: 1.2, superficie: "Cristal panorámica", tipo: "Exterior", precio: 18, valoracion: 4.7,
-        slots: ["09:00","10:30","12:00","18:00","20:30"], ocupadas: ["16:00","19:00"] },
-      { name: "La Finca Pádel", zona: "Pozuelo · 8.4 km", distancia: 8.4, superficie: "Muro", tipo: "Cubierta", precio: 24, valoracion: 4.5,
-        slots: ["08:00","09:30","17:00","19:30","21:00"], ocupadas: ["11:00"] },
-      { name: "Norte Pádel Indoor", zona: "Fuencarral · 5.1 km", distancia: 5.1, superficie: "Cristal panorámica", tipo: "Cubierta", precio: 20, valoracion: 4.3,
-        slots: ["07:30","10:00","13:00","18:30"], ocupadas: ["09:00","20:00"] },
-      { name: "Chamberí Sports", zona: "Chamberí · 2.8 km", distancia: 2.8, superficie: "Muro", tipo: "Exterior", precio: 16, valoracion: 4.1,
-        slots: ["11:00","12:30","17:30","19:00","20:00"], ocupadas: [] }
-    ],
-    barcelona: [
-      { name: "Pádel Diagonal", zona: "Les Corts · 2.1 km", distancia: 2.1, superficie: "Cristal panorámica", tipo: "Cubierta", precio: 22, valoracion: 4.6,
-        slots: ["09:00","11:00","18:00","20:00"], ocupadas: ["19:00"] },
-      { name: "Poblenou Pádel Club", zona: "Poblenou · 3.6 km", distancia: 3.6, superficie: "Muro", tipo: "Exterior", precio: 17, valoracion: 4.2,
-        slots: ["08:30","10:00","17:00","21:00"], ocupadas: ["12:00"] },
-      { name: "Sarrià Indoor", zona: "Sarrià · 6.9 km", distancia: 6.9, superficie: "Cristal panorámica", tipo: "Cubierta", precio: 25, valoracion: 4.8,
-        slots: ["07:00","09:00","19:00"], ocupadas: ["10:00","20:00"] }
-    ],
-    valencia: [],
-    sevilla: [
-      { name: "Triana Pádel", zona: "Triana · 2.4 km", distancia: 2.4, superficie: "Muro", tipo: "Exterior", precio: 13, valoracion: 4.3,
-        slots: ["09:30","12:00","18:30","20:00"], ocupadas: ["17:00"] },
-      { name: "Nervión Indoor", zona: "Nervión · 3.9 km", distancia: 3.9, superficie: "Cristal panorámica", tipo: "Cubierta", precio: 19, valoracion: 4.5,
-        slots: ["08:00","10:30","19:00","21:00"], ocupadas: [] }
-    ]
-  };
-
   let REAL_POR_FECHA = {};
   let datosActualizadosEn = null;
   let datosRealesCargados = false;
@@ -563,33 +527,16 @@
   fechaMax.setDate(fechaMax.getDate() + 6);
   dateInput.max = fechaMax.toISOString().split('T')[0];
 
-  let currentSort = 'precio';
-
-  document.querySelectorAll('.segmented button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.segmented button').forEach(b => b.setAttribute('aria-pressed', 'false'));
-      btn.setAttribute('aria-pressed', 'true');
-      currentSort = btn.dataset.sort;
-      render();
-    });
-  });
-
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     render();
   });
 
   function render() {
-    const city = document.getElementById('city').value;
     const tramo = document.getElementById('tramo').value;
     const tipoPista = document.getElementById('tipoPista').value;
     const fechaSeleccionada = document.getElementById('date').value;
-
-    if (city === 'valencia') {
-      renderReal(fechaSeleccionada, tramo, tipoPista);
-    } else {
-      renderMock(city, tramo, tipoPista);
-    }
+    renderReal(fechaSeleccionada, tramo, tipoPista);
   }
 
   function filtrarPistas(pistas, tramo, tipoPista) {
@@ -664,61 +611,6 @@
         </div>
       </li>
     `).join('');
-  }
-
-  function renderMock(city, tramo, tipoPista) {
-    let clubs = [...(CLUBS[city] || [])];
-
-    if (tipoPista !== 'todas') {
-      clubs = clubs.filter(c => c.tipo === tipoPista);
-    }
-
-    clubs = clubs.map(c => {
-      const slotsFiltered = c.slots.filter(s => TRAMOS[tramo](parseInt(s.split(':')[0])));
-      return { ...c, slotsFiltered };
-    }).filter(c => c.slotsFiltered.length > 0);
-
-    if (currentSort === 'precio') clubs.sort((a, b) => (a.precio ?? Infinity) - (b.precio ?? Infinity));
-    if (currentSort === 'distancia') clubs.sort((a, b) => (a.distancia ?? Infinity) - (b.distancia ?? Infinity));
-    if (currentSort === 'valoracion') clubs.sort((a, b) => (b.valoracion ?? -Infinity) - (a.valoracion ?? -Infinity));
-
-    countEl.textContent = clubs.length + (clubs.length === 1 ? ' club encontrado' : ' clubes encontrados');
-
-    if (clubs.length === 0) {
-      list.innerHTML = '<div class="empty">No hay pistas de ejemplo para esa combinación. Prueba otra franja horaria o ciudad.</div>';
-      return;
-    }
-
-    list.innerHTML = clubs.map((c, i) => {
-      const badgeClass = c.tipo === 'Cubierta' ? 'indoor' : 'outdoor';
-      const badgeLabel = c.tipo === 'Cubierta' ? 'Indoor' : 'Outdoor';
-      const metaExtra = [
-        c.superficie ? `<span class="dot">${c.superficie}</span>` : '',
-        `<span class="dot"><span class="badge ${badgeClass}">${badgeLabel}</span></span>`,
-        (c.valoracion != null) ? `<span class="dot rating"><span class="num">${c.valoracion.toFixed(1)}</span><span class="star">★</span></span>` : ''
-      ].join('');
-      const priceBlock = (c.precio != null)
-        ? `<div class="price">${c.precio}€ <small>/h</small></div>`
-        : `<div class="price-note">Disponibilidad<br>en vivo</div>`;
-      return `
-      <li class="row">
-        <div>
-          <div class="club-name">${c.name}</div>
-          <div class="club-meta">
-            <span class="dot">${c.zona}</span>
-            ${metaExtra}
-          </div>
-          <div class="slots">
-            ${c.slotsFiltered.map(s => `<span class="slot ${c.ocupadas.includes(s) ? 'taken' : ''}">${s}</span>`).join('')}
-          </div>
-        </div>
-        <div class="price-block">
-          ${priceBlock}
-          <a class="cta" href="#" onclick="return false;">Ver pista</a>
-        </div>
-      </li>
-    `;
-    }).join('');
   }
 
   render();
