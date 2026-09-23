@@ -413,14 +413,14 @@
   </div>
 </div>
 
-<div class="wrap">
+<div class="wrap" id="resultsSection" style="display:none;">
   <div class="toolbar">
     <div><h2 style="display:inline;">Resultados</h2><span class="results-count" id="resultsCount"></span></div>
   </div>
 
   <ul class="list" id="resultsList"></ul>
 
-  <p class="note">Maqueta con clubes y horarios ficticios, pensada para validar la idea antes de conectar datos reales de disponibilidad.</p>
+  <p class="note">Datos reales de disponibilidad, capturados automáticamente y actualizados cada hora.</p>
 </div>
 
 <footer class="site-footer">
@@ -450,26 +450,23 @@
     <div class="footer-col">
       <h3>Empresa</h3>
       <ul>
-        <li><a href="#" onclick="return false;">Sobre nosotros</a></li>
-        <li><a href="#" onclick="return false;">Cómo funciona</a></li>
-        <li><a href="#" onclick="return false;">Para clubes</a></li>
-        <li><a href="#" onclick="return false;">Empleo</a></li>
+        <li><a href="sobre-nosotros.html">Sobre nosotros</a></li>
+        <li><a href="como-funciona.html">Cómo funciona</a></li>
+        <li><a href="para-clubes.html">Para clubes</a></li>
       </ul>
     </div>
     <div class="footer-col">
       <h3>Contacto</h3>
       <ul>
         <li><a href="mailto:hola@pistalo.com">hola@pistalo.com</a></li>
-        <li><a href="#" onclick="return false;">Centro de ayuda</a></li>
-        <li><a href="#" onclick="return false;">Prensa</a></li>
       </ul>
     </div>
     <div class="footer-col">
       <h3>Legal</h3>
       <ul>
-        <li><a href="#" onclick="return false;">Términos de uso</a></li>
-        <li><a href="#" onclick="return false;">Privacidad</a></li>
-        <li><a href="#" onclick="return false;">Cookies</a></li>
+        <li><a href="terminos.html">Términos de uso</a></li>
+        <li><a href="privacidad.html">Privacidad</a></li>
+        <li><a href="cookies.html">Cookies</a></li>
       </ul>
     </div>
   </div>
@@ -483,6 +480,7 @@
   let REAL_POR_FECHA = {};
   let datosActualizadosEn = null;
   let datosRealesCargados = false;
+  let busquedaRealizada = false;
 
   async function cargarDatosReales() {
     try {
@@ -527,9 +525,15 @@
   fechaMax.setDate(fechaMax.getDate() + 6);
   dateInput.max = fechaMax.toISOString().split('T')[0];
 
+  const resultsSection = document.getElementById('resultsSection');
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    render();
+    busquedaRealizada = true;
+    resultsSection.style.display = '';
+    countEl.textContent = '';
+    list.innerHTML = '<div class="empty">🔎 Buscando disponibilidad…</div>';
+    setTimeout(render, 350);
   });
 
   function render() {
@@ -547,6 +551,12 @@
   }
 
   function renderReal(fecha, tramo, tipoPista) {
+    if (!busquedaRealizada) {
+      countEl.textContent = '';
+      list.innerHTML = '<div class="empty">Elige ciudad y fecha, y pulsa «Buscar» para ver la disponibilidad en directo.</div>';
+      return;
+    }
+
     if (!datosRealesCargados) {
       countEl.textContent = '';
       list.innerHTML = '<div class="empty">Cargando disponibilidad en directo…</div>';
@@ -603,7 +613,12 @@
                 <span class="badge ${badgeClass}">${badgeLabel}</span>
               </div>
               <div class="slots">
-                ${p.slotsFiltrados.map(s => `<span class="slot ${p.ocupadas.includes(s) ? 'taken' : ''}">${s}</span>`).join('')}
+                ${p.slotsFiltrados.map(s => {
+                  const ocupada = p.ocupadas.includes(s);
+                  return ocupada
+                    ? `<span class="slot taken">${s}</span>`
+                    : `<a class="slot" href="${c.url}" target="_blank" rel="noopener" title="Reservar en ${c.club}">${s}</a>`;
+                }).join('')}
               </div>
             </div>
           `;
