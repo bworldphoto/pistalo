@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Acceso admin — Pistalo</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    box-sizing: border-box;
+    --bg: #F4F6FF; --surface: #FFFFFF; --surface-2: #EDF0FF;
+    --blue: #7C3AED; --blue-ink: #FFFFFF; --blue-tint: #F1E9FE;
+    --ink: #0A1230; --ink-soft: #5B6188; --ink-faint: #9297B8; --line: #E1E4FA;
+    --red: #DC2626; --red-tint: #FDE8E8;
+    --radius-lg: 26px; --shadow: 0 20px 45px -22px rgba(124, 58, 237, 0.35);
+  }
+  * { box-sizing: border-box; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0A1230; --surface: #131B45; --surface-2: #1A2358;
+      --blue: #A78BFA; --blue-ink: #1E1B2E; --blue-tint: #2C2350;
+      --ink: #F1F3FF; --ink-soft: #A7ACD6; --ink-faint: #6B7099; --line: #232C5C;
+      --red: #F87171; --red-tint: #3A1414;
+      --shadow: 0 20px 45px -22px rgba(0,0,0,0.6);
+    }
+  }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; }
+  h1, .brand-word { font-family: 'Fredoka', 'Inter', sans-serif; font-weight: 600; margin: 0; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px;
+    padding-top: max(20px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
+  .login-card {
+    width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius-lg); padding: 36px 32px; box-shadow: var(--shadow);
+  }
+  .brand { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 6px; }
+  .admin-tag {
+    display: block; text-align: center; font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 22px;
+  }
+  h1 { font-size: 22px; text-align: center; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: var(--ink-soft); font-size: 14px; margin-bottom: 26px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
+  .input-row { position: relative; margin-bottom: 8px; }
+  input[type="password"], input[type="text"] {
+    width: 100%; padding: 13px 44px 13px 16px; border-radius: 14px; border: 1px solid var(--line);
+    background: var(--surface-2); color: var(--ink); font-size: 15px; font-family: monospace;
+  }
+  input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .toggle-visibilidad {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; padding: 8px; color: var(--ink-faint); font-size: 16px;
+  }
+  .btn-entrar {
+    width: 100%; margin-top: 14px; background: var(--blue); color: var(--blue-ink);
+    font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 16px; padding: 14px;
+    border: none; border-radius: 100px; cursor: pointer;
+  }
+  .btn-entrar:disabled { opacity: 0.6; cursor: default; }
+  .btn-entrar:hover:not(:disabled) { filter: brightness(1.08); }
+  .mensaje-error {
+    display: none; background: var(--red-tint); color: var(--red); font-size: 13.5px;
+    padding: 12px 14px; border-radius: 12px; margin-top: 14px;
+  }
+  .ayuda { text-align: center; margin-top: 22px; font-size: 12.5px; color: var(--ink-faint); }
+  .ayuda a { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="brand"><span class="brand-word" style="font-size:22px;">Pistalo</span></div>
+  <span class="admin-tag">Admin</span>
+  <h1>Acceso al panel</h1>
+  <p class="subtitle">Introduce tu token personal de GitHub con acceso al repositorio.</p>
+
+  <form id="loginForm">
+    <label for="token">Token de acceso</label>
+    <div class="input-row">
+      <input type="password" id="token" autocomplete="off" spellcheck="false" placeholder="github_pat_..." required>
+      <button type="button" class="toggle-visibilidad" id="toggleVer" aria-label="Mostrar u ocultar">👁️</button>
+    </div>
+    <button type="submit" class="btn-entrar" id="btnEntrar">Entrar</button>
+    <div class="mensaje-error" id="mensajeError"></div>
+  </form>
+
+  <p class="ayuda">El token se guarda solo en tu navegador (nunca en el código), y se olvida al cerrar sesión.</p>
+</div>
+
+<script>
+  const REPO = 'bworldphoto/pistalo';
+  const form = document.getElementById('loginForm');
+  const tokenInput = document.getElementById('token');
+  const btnEntrar = document.getElementById('btnEntrar');
+  const mensajeError = document.getElementById('mensajeError');
+  const toggleVer = document.getElementById('toggleVer');
+
+  toggleVer.addEventListener('click', () => {
+    tokenInput.type = tokenInput.type === 'password' ? 'text' : 'password';
+  });
+
+  function mostrarError(texto) {
+    mensajeError.textContent = texto;
+    mensajeError.style.display = 'block';
+  }
+
+  // Si ya hay una sesión válida guardada, saltar directo al panel
+  if (sessionStorage.getItem('pistalo_admin_token')) {
+    window.location.href = 'admin.html';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = tokenInput.value.trim();
+    if (!token) return;
+
+    mensajeError.style.display = 'none';
+    btnEntrar.disabled = true;
+    btnEntrar.textContent = 'Comprobando…';
+
+    try {
+      const resp = await fetch(`https://api.github.com/repos/${REPO}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+      });
+
+      if (resp.status === 401 || resp.status === 403) {
+        mostrarError('Ese token no es válido, o ha caducado.');
+      } else if (resp.status === 404) {
+        mostrarError('El token no tiene acceso al repositorio pistalo.');
+      } else if (!resp.ok) {
+        mostrarError('No se pudo verificar el token (código ' + resp.status + ').');
+      } else {
+        const data = await resp.json();
+        if (!data.permissions || !data.permissions.pull) {
+          mostrarError('El token es válido pero no tiene permisos suficientes sobre el repositorio.');
+        } else {
+          sessionStorage.setItem('pistalo_admin_token', token);
+          window.location.href = 'admin.html';
+          return;
+        }
+      }
+    } catch (err) {
+      mostrarError('No se pudo comprobar el token: ' + err.message);
+    }
+
+    btnEntrar.disabled = false;
+    btnEntrar.textContent = 'Entrar';
+  });
+</script>
+
+</body>
+</html>
