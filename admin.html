@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel de administración — Pistalo</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    box-sizing: border-box;
+    --bg: #F4F6FF;
+    --surface: #FFFFFF;
+    --surface-2: #EDF0FF;
+    --blue: #7C3AED;
+    --blue-ink: #FFFFFF;
+    --blue-tint: #F1E9FE;
+    --lime: #A3E635;
+    --lime-ink: #1D2400;
+    --ink: #0A1230;
+    --ink-soft: #5B6188;
+    --ink-faint: #9297B8;
+    --line: #E1E4FA;
+    --green: #16A34A;
+    --green-tint: #E4F7EB;
+    --red: #DC2626;
+    --red-tint: #FDE8E8;
+    --radius-lg: 26px;
+    --radius-md: 18px;
+    --shadow: 0 20px 45px -22px rgba(124, 58, 237, 0.35);
+  }
+  * { box-sizing: border-box; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0A1230; --surface: #131B45; --surface-2: #1A2358;
+      --blue: #A78BFA; --blue-ink: #1E1B2E; --blue-tint: #2C2350;
+      --lime: #BEF264; --lime-ink: #1A2200;
+      --ink: #F1F3FF; --ink-soft: #A7ACD6; --ink-faint: #6B7099; --line: #232C5C;
+      --green: #4ADE80; --green-tint: #103823; --red: #F87171; --red-tint: #3A1414;
+      --shadow: 0 20px 45px -22px rgba(0,0,0,0.6);
+    }
+  }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, .brand-word { font-family: 'Fredoka', 'Inter', sans-serif; font-weight: 600; margin: 0; }
+  a { color: var(--blue); }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+  header.nav {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-word { font-size: 20px; }
+  .admin-tag {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    background: var(--ink); color: var(--bg); padding: 5px 12px; border-radius: 100px;
+  }
+  .back-link { font-size: 14px; font-weight: 600; color: var(--ink-soft); text-decoration: none; }
+  .back-link:hover { color: var(--blue); }
+
+  main { padding: 40px 0 80px; }
+  h1.page-title { font-size: clamp(26px, 4vw, 34px); margin-bottom: 6px; }
+  .subtitle { color: var(--ink-soft); font-size: 15px; margin-bottom: 32px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
+    padding: 26px 28px; margin-bottom: 22px; box-shadow: var(--shadow);
+  }
+  .card h2 { font-size: 18px; margin-bottom: 4px; }
+  .card .card-sub { color: var(--ink-soft); font-size: 13.5px; margin-bottom: 18px; }
+
+  .estado-badge {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 17px;
+    padding: 14px 20px; border-radius: var(--radius-md); margin-bottom: 6px;
+  }
+  .estado-badge.ok { background: var(--green-tint); color: var(--green); }
+  .estado-badge.fallo { background: var(--red-tint); color: var(--red); }
+  .estado-badge.cargando { background: var(--surface-2); color: var(--ink-soft); }
+
+  .meta-row { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 16px; font-size: 14px; color: var(--ink-soft); }
+  .meta-row strong { color: var(--ink); font-family: 'Fredoka', sans-serif; font-weight: 600; }
+
+  .error-item {
+    background: var(--red-tint); border-radius: 14px; padding: 14px 18px; margin-top: 12px;
+  }
+  .error-item .club-nombre { font-family: 'Fredoka', sans-serif; font-weight: 600; color: var(--red); font-size: 15px; }
+  .error-item .tipo-tag {
+    display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.03em; background: var(--surface); color: var(--red);
+    padding: 3px 9px; border-radius: 100px; margin-left: 8px; vertical-align: middle;
+  }
+  .error-item .detalle { font-size: 13.5px; color: var(--ink-soft); margin-top: 6px; line-height: 1.5; }
+  .error-item details { margin-top: 10px; }
+  .error-item summary { font-size: 12.5px; color: var(--red); cursor: pointer; font-weight: 600; }
+  .error-item pre {
+    background: var(--ink); color: #E5E7EB; font-size: 12px; padding: 12px 14px; border-radius: 10px;
+    margin-top: 8px; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--blue); color: var(--blue-ink); font-family: 'Fredoka', sans-serif;
+    font-weight: 600; font-size: 14.5px; padding: 12px 20px; border-radius: 100px;
+    text-decoration: none; margin-top: 14px;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.secundario { background: var(--surface-2); color: var(--ink); }
+
+  .proximamente {
+    background: var(--surface-2); border: 1px dashed var(--line); border-radius: var(--radius-lg);
+    padding: 30px 28px; margin-bottom: 22px; text-align: center;
+  }
+  .proximamente .icono { font-size: 32px; margin-bottom: 10px; }
+  .proximamente h2 { font-size: 16px; color: var(--ink-soft); margin-bottom: 6px; }
+  .proximamente p { font-size: 13.5px; color: var(--ink-faint); margin: 0; }
+
+  code { background: var(--surface-2); padding: 2px 7px; border-radius: 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+<script>
+  if (!sessionStorage.getItem('pistalo_admin_token')) {
+    window.location.replace('login.html');
+  }
+</script>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <div class="brand">
+      <span class="brand-word">Pistalo</span>
+      <span class="admin-tag">Admin</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:18px;">
+      <a class="back-link" href="index.html">← Volver a la web</a>
+      <button id="btnCerrarSesion" class="back-link" style="background:none; border:none; cursor:pointer; font-family:inherit;">Cerrar sesión</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1 class="page-title">Panel de administración</h1>
+  <p class="subtitle">Solo para uso interno — no enlazado desde la web pública.</p>
+
+  <div class="card">
+    <h2>Estado del scraping</h2>
+    <div class="card-sub">Se actualiza automáticamente cada hora. Esta información viene del último archivo generado.</div>
+    <div id="estadoBadge" class="estado-badge cargando">⏳ Cargando estado…</div>
+    <div id="metaRow" class="meta-row"></div>
+    <div id="listaErrores"></div>
+    <a class="btn" href="https://github.com/bworldphoto/pistalo/actions" target="_blank" rel="noopener">Ir a GitHub Actions →</a>
+    <a class="btn secundario" href="https://github.com/bworldphoto/pistalo/blob/main/data/disponibilidad.json" target="_blank" rel="noopener">Ver disponibilidad.json</a>
+  </div>
+
+  <div class="card">
+    <h2>Notificaciones push</h2>
+    <div class="card-sub">Si algún club falla al actualizarse, se envía un aviso automático.</div>
+    <p style="font-size:14.5px; color:var(--ink-soft); margin:0;">
+      Suscríbete en la app gratuita <a href="https://ntfy.sh" target="_blank" rel="noopener">ntfy</a> al tema:
+      <code>pistalo-scraping-vy8k2m</code>
+    </p>
+  </div>
+
+  <div class="proximamente">
+    <div class="icono">📊</div>
+    <h2>Estadísticas de la web</h2>
+    <p>Próximo módulo — visitas, búsquedas y ciudades más consultadas.</p>
+  </div>
+
+  <div class="proximamente">
+    <div class="icono">🏟️</div>
+    <h2>Gestión de clubes</h2>
+    <p>Próximo módulo — añadir y editar clubes, ubicación, comodidades y logo.</p>
+  </div>
+</main>
+
+<script>
+  function formatearRelativo(isoString) {
+    if (!isoString) return 'desconocido';
+    const fecha = new Date(isoString);
+    const ahoraMs = Date.now();
+    const diffMin = Math.round((ahoraMs - fecha.getTime()) / 60000);
+    if (diffMin < 1) return 'hace un momento';
+    if (diffMin < 60) return `hace ${diffMin} min`;
+    const diffH = Math.round(diffMin / 60);
+    if (diffH < 24) return `hace ${diffH} h`;
+    const diffD = Math.round(diffH / 24);
+    return `hace ${diffD} día${diffD === 1 ? '' : 's'}`;
+  }
+
+  async function cargarEstado() {
+    const badge = document.getElementById('estadoBadge');
+    const metaRow = document.getElementById('metaRow');
+    const listaErrores = document.getElementById('listaErrores');
+
+    try {
+      const resp = await fetch('data/disponibilidad.json', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('Respuesta no válida: ' + resp.status);
+      const data = await resp.json();
+
+      const errores = data.errores || [];
+      const ultimaEjecucion = data.ultima_ejecucion_utc || null;
+
+      if (errores.length === 0) {
+        badge.className = 'estado-badge ok';
+        badge.innerHTML = '✅ Todo funciona correctamente';
+      } else {
+        badge.className = 'estado-badge fallo';
+        badge.innerHTML = `⚠️ ${errores.length} fallo${errores.length === 1 ? '' : 's'} detectado${errores.length === 1 ? '' : 's'} en la última ejecución`;
+      }
+
+      metaRow.innerHTML = `
+        <span><strong>Última ejecución:</strong> ${formatearRelativo(ultimaEjecucion)}</span>
+        <span><strong>Días con datos:</strong> ${Object.keys(data.por_fecha || {}).length}</span>
+      `;
+
+      const ICONO_TIPO = { 'conexión': '🔌', 'error_inesperado': '🧩', 'datos_incompletos': '📉' };
+      const NOMBRE_TIPO = { 'conexión': 'Conexión', 'error_inesperado': 'Error inesperado', 'datos_incompletos': 'Datos incompletos' };
+
+      listaErrores.innerHTML = errores.map(e => {
+        const icono = ICONO_TIPO[e.tipo] || '⚠️';
+        const nombreTipo = NOMBRE_TIPO[e.tipo] || 'Desconocido';
+        const traceback = e.traceback
+          ? `<details><summary>Ver detalle técnico completo</summary><pre>${e.traceback.replace(/</g,'&lt;')}</pre></details>`
+          : '';
+        return `
+          <div class="error-item">
+            <div class="club-nombre">${icono} ${e.club} — ${e.fecha}<span class="tipo-tag">${nombreTipo}</span></div>
+            <div class="detalle">${e.mensaje}</div>
+            ${traceback}
+          </div>
+        `;
+      }).join('');
+
+    } catch (e) {
+      badge.className = 'estado-badge fallo';
+      badge.innerHTML = '⚠️ No se pudo leer el archivo de datos';
+      metaRow.innerHTML = `<span>${e.message}</span>`;
+    }
+  }
+
+  document.getElementById('btnCerrarSesion').addEventListener('click', () => {
+    sessionStorage.removeItem('pistalo_admin_token');
+    window.location.href = 'login.html';
+  });
+
+  cargarEstado();
+</script>
+
+</body>
+</html>

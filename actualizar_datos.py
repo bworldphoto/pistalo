@@ -20,6 +20,7 @@ import re
 import os
 import json
 import time
+import traceback
 from datetime import date, timedelta
 
 import requests
@@ -211,6 +212,94 @@ def agrupar_por_pista(franjas: list[dict]) -> list[dict]:
     return pistas
 
 
+
+# Cuántas pistas esperamos como mínimo en un día normal. Si un club devuelve
+# menos de esto SIN dar ningún error de conexión, es señal de que algo ha
+# cambiado en su web (y el scraper ya no la está leyendo bien).
+PISTAS_MINIMAS_ESPERADAS = {
+    "Padel Paiporta": 4,             # normalmente hay 6 (5 + exterior)
+    "Tu Padel Valencia — Picanya": 4,  # normalmente hay 5
+}
+
+
+def procesar_club(nombre_club: str, zona: str, url: str, snapshot_fn, fecha: date) -> tuple[dict | None, dict | None]:
+    """
+    Intenta obtener y procesar los datos de un club para una fecha.
+    Devuelve (club_dict, error_dict). Cualquiera de los dos puede ser None:
+      - Si todo va bien: (club_dict, None)
+      - Si falla la conexión o el parseo: (None, error_dict)
+      - Si conecta bien pero los datos parecen incompletos/raros: (club_dict, error_dict)
+        (se guardan igualmente los datos parciales que se hayan podido sacar,
+        y además se avisa del problema)
+    """
+    fecha_str = fecha.isoformat()
+
+    # --- Paso 1: intentar obtener y parsear los datos ---
+    try:
+        franjas = snapshot_fn(fecha)
+        pistas = agrupar_por_pista(franjas)
+    except requests.RequestException as e:
+        return None, {
+            "club": nombre_club,
+            "fecha": fecha_str,
+            "tipo": "conexión",
+            "mensaje": f"No se pudo conectar con la web: {e}",
+        }
+    except Exception as e:
+        # Cualquier otro fallo (parseo, HTML inesperado, etc.) — casi
+        # siempre significa que la web ha cambiado de estructura.
+        tb_resumida = traceback.format_exc(limit=4)
+        return None, {
+            "club": nombre_club,
+            "fecha": fecha_str,
+            "tipo": "error_inesperado",
+            "mensaje": (
+                f"Fallo inesperado al procesar la respuesta ({type(e).__name__}: {e}). "
+                f"Es probable que la web haya cambiado de estructura."
+            ),
+            "traceback": tb_resumida,
+        }
+
+    club_dict = {
+        "club": nombre_club,
+        "zona": zona,
+        "url": url,
+        "real": True,
+        "pistas": pistas,
+    }
+
+    # --- Paso 2: validar que los datos obtenidos tienen buena pinta ---
+    minimo = PISTAS_MINIMAS_ESPERADAS.get(nombre_club, 1)
+    num_pistas = len(pistas)
+    pistas_sin_horarios = [p["pista"] for p in pistas if len(p["slots"]) == 0]
+
+    problemas = []
+    if num_pistas == 0:
+        problemas.append(
+            "no se ha encontrado ninguna pista en la página — probablemente la web "
+            "ha cambiado su estructura HTML y el scraper ya no la reconoce."
+        )
+    elif num_pistas < minimo:
+        problemas.append(
+            f"solo se han encontrado {num_pistas} pistas (se esperaban {minimo} o más) — "
+            f"puede que la web haya cambiado, o que varias pistas estén fuera de servicio a la vez."
+        )
+    if pistas_sin_horarios:
+        problemas.append(
+            f"estas pistas se han encontrado pero sin ningún horario dentro: {', '.join(pistas_sin_horarios)}."
+        )
+
+    if problemas:
+        return club_dict, {
+            "club": nombre_club,
+            "fecha": fecha_str,
+            "tipo": "datos_incompletos",
+            "mensaje": " ".join(problemas),
+        }
+
+    return club_dict, None
+
+
 def generar_datos() -> tuple[dict, list]:
     resultado_por_fecha = {}
     errores = []
@@ -220,35 +309,27 @@ def generar_datos() -> tuple[dict, list]:
         fecha_str = fecha.isoformat()
         clubs_del_dia = []
 
-        try:
-            franjas_paiporta = paiporta_snapshot(fecha)
-            clubs_del_dia.append({
-                "club": "Padel Paiporta",
-                "zona": "Paiporta, Valencia",
-                "url": "https://www.padelpaiporta.com/",
-                "real": True,
-                "pistas": agrupar_por_pista(franjas_paiporta),
-            })
-        except requests.RequestException as e:
-            mensaje = f"Fallo consultando Padel Paiporta para {fecha_str}: {e}"
-            print(f"[AVISO] {mensaje}")
-            errores.append({"club": "Padel Paiporta", "fecha": fecha_str, "mensaje": str(e)})
+        club_paiporta, error_paiporta = procesar_club(
+            "Padel Paiporta", "Paiporta, Valencia", "https://www.padelpaiporta.com/",
+            paiporta_snapshot, fecha,
+        )
+        if club_paiporta:
+            clubs_del_dia.append(club_paiporta)
+        if error_paiporta:
+            print(f"[AVISO] {error_paiporta['club']} ({fecha_str}): {error_paiporta['mensaje']}")
+            errores.append(error_paiporta)
 
         time.sleep(3)
 
-        try:
-            franjas_tupadel = tupadel_snapshot(fecha)
-            clubs_del_dia.append({
-                "club": "Tu Padel Valencia — Picanya",
-                "zona": "Picanya, Valencia",
-                "url": "https://www.tupadelvalencia.com/Partidas_Padel.aspx",
-                "real": True,
-                "pistas": agrupar_por_pista(franjas_tupadel),
-            })
-        except requests.RequestException as e:
-            mensaje = f"Fallo consultando Tu Padel Valencia para {fecha_str}: {e}"
-            print(f"[AVISO] {mensaje}")
-            errores.append({"club": "Tu Padel Valencia — Picanya", "fecha": fecha_str, "mensaje": str(e)})
+        club_tupadel, error_tupadel = procesar_club(
+            "Tu Padel Valencia — Picanya", "Picanya, Valencia", "https://www.tupadelvalencia.com/Partidas_Padel.aspx",
+            tupadel_snapshot, fecha,
+        )
+        if club_tupadel:
+            clubs_del_dia.append(club_tupadel)
+        if error_tupadel:
+            print(f"[AVISO] {error_tupadel['club']} ({fecha_str}): {error_tupadel['mensaje']}")
+            errores.append(error_tupadel)
 
         resultado_por_fecha[fecha_str] = clubs_del_dia
         time.sleep(3)
@@ -259,15 +340,27 @@ def generar_datos() -> tuple[dict, list]:
 NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "pistalo-scraping-vy8k2m")
 
 
+ICONO_TIPO = {
+    "conexión": "🔌",
+    "error_inesperado": "🧩",
+    "datos_incompletos": "📉",
+}
+
+
 def enviar_alerta(errores: list) -> None:
-    resumen = "; ".join(f"{e['club']} ({e['fecha']})" for e in errores[:5])
-    mas = f" y {len(errores) - 5} más" if len(errores) > 5 else ""
-    mensaje = f"⚠️ Pistalo: fallo al actualizar {resumen}{mas}"
+    lineas = []
+    for e in errores[:5]:
+        icono = ICONO_TIPO.get(e.get("tipo"), "⚠️")
+        lineas.append(f"{icono} {e['club']} ({e['fecha']}): {e['mensaje']}")
+    if len(errores) > 5:
+        lineas.append(f"…y {len(errores) - 5} problema(s) más. Revisa el panel para verlos todos.")
+    mensaje = "\n".join(lineas)
+
     try:
         requests.post(
             f"https://ntfy.sh/{NTFY_TOPIC}",
             data=mensaje.encode("utf-8"),
-            headers={"Title": "Pistalo — fallo de scraping", "Priority": "high"},
+            headers={"Title": f"Pistalo — {len(errores)} problema(s) detectado(s)", "Priority": "high"},
             timeout=10,
         )
         print(f"[ALERTA] Notificación enviada a ntfy.sh/{NTFY_TOPIC}")
@@ -278,23 +371,41 @@ def enviar_alerta(errores: list) -> None:
 if __name__ == "__main__":
     from datetime import datetime, timezone
 
-    datos, errores = generar_datos()
+    try:
+        datos, errores = generar_datos()
 
-    os.makedirs("data", exist_ok=True)
-    salida = {
-        "actualizado_en": date.today().isoformat(),
-        "ultima_ejecucion_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "errores": errores,
-        "por_fecha": datos,
-    }
-    with open("data/disponibilidad.json", "w", encoding="utf-8") as f:
-        json.dump(salida, f, ensure_ascii=False, indent=2)
+        os.makedirs("data", exist_ok=True)
+        salida = {
+            "actualizado_en": date.today().isoformat(),
+            "ultima_ejecucion_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "errores": errores,
+            "por_fecha": datos,
+        }
+        with open("data/disponibilidad.json", "w", encoding="utf-8") as f:
+            json.dump(salida, f, ensure_ascii=False, indent=2)
 
-    total_clubs = sum(len(v) for v in datos.values())
-    print(f"Guardado data/disponibilidad.json con {len(datos)} días y {total_clubs} entradas de club en total.")
+        total_clubs = sum(len(v) for v in datos.values())
+        print(f"Guardado data/disponibilidad.json con {len(datos)} días y {total_clubs} entradas de club en total.")
 
-    if errores:
-        print(f"[AVISO] Se han detectado {len(errores)} fallos durante esta ejecución.")
-        enviar_alerta(errores)
-    else:
-        print("Sin errores en esta ejecución.")
+        if errores:
+            print(f"[AVISO] Se han detectado {len(errores)} problema(s) durante esta ejecución.")
+            enviar_alerta(errores)
+        else:
+            print("Sin errores en esta ejecución.")
+
+    except Exception as e:
+        # Red de seguridad: si algo revienta de una forma que no habíamos
+        # previsto (un bug en el propio script, por ejemplo), esto evita que
+        # el fallo pase desapercibido del todo. No se sobrescribe el archivo
+        # de datos (así la web sigue mostrando los últimos datos buenos que
+        # había), pero sí se manda una alerta con el máximo detalle posible.
+        tb_completa = traceback.format_exc()
+        print("[ERROR CRÍTICO] La ejecución ha fallado por completo:")
+        print(tb_completa)
+        enviar_alerta([{
+            "club": "Ejecución completa",
+            "fecha": date.today().isoformat(),
+            "tipo": "error_inesperado",
+            "mensaje": f"El script ha fallado por completo ({type(e).__name__}: {e}). No se ha actualizado ningún dato esta vez.",
+        }])
+        raise  # que la ejecución de GitHub Actions también quede marcada como fallida
