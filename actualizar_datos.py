@@ -17,6 +17,7 @@ Genera/actualiza: data/disponibilidad.json
 from __future__ import annotations
 
 import re
+import os
 import json
 import time
 from datetime import date, timedelta
@@ -210,8 +211,9 @@ def agrupar_por_pista(franjas: list[dict]) -> list[dict]:
     return pistas
 
 
-def generar_datos() -> dict:
+def generar_datos() -> tuple[dict, list]:
     resultado_por_fecha = {}
+    errores = []
 
     for i in range(DIAS_A_CONSULTAR):
         fecha = date.today() + timedelta(days=i)
@@ -228,7 +230,9 @@ def generar_datos() -> dict:
                 "pistas": agrupar_por_pista(franjas_paiporta),
             })
         except requests.RequestException as e:
-            print(f"[AVISO] Fallo consultando Padel Paiporta para {fecha_str}: {e}")
+            mensaje = f"Fallo consultando Padel Paiporta para {fecha_str}: {e}"
+            print(f"[AVISO] {mensaje}")
+            errores.append({"club": "Padel Paiporta", "fecha": fecha_str, "mensaje": str(e)})
 
         time.sleep(3)
 
@@ -242,22 +246,45 @@ def generar_datos() -> dict:
                 "pistas": agrupar_por_pista(franjas_tupadel),
             })
         except requests.RequestException as e:
-            print(f"[AVISO] Fallo consultando Tu Padel Valencia para {fecha_str}: {e}")
+            mensaje = f"Fallo consultando Tu Padel Valencia para {fecha_str}: {e}"
+            print(f"[AVISO] {mensaje}")
+            errores.append({"club": "Tu Padel Valencia — Picanya", "fecha": fecha_str, "mensaje": str(e)})
 
         resultado_por_fecha[fecha_str] = clubs_del_dia
         time.sleep(3)
 
-    return resultado_por_fecha
+    return resultado_por_fecha, errores
+
+
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "pistalo-scraping-vy8k2m")
+
+
+def enviar_alerta(errores: list) -> None:
+    resumen = "; ".join(f"{e['club']} ({e['fecha']})" for e in errores[:5])
+    mas = f" y {len(errores) - 5} más" if len(errores) > 5 else ""
+    mensaje = f"⚠️ Pistalo: fallo al actualizar {resumen}{mas}"
+    try:
+        requests.post(
+            f"https://ntfy.sh/{NTFY_TOPIC}",
+            data=mensaje.encode("utf-8"),
+            headers={"Title": "Pistalo — fallo de scraping", "Priority": "high"},
+            timeout=10,
+        )
+        print(f"[ALERTA] Notificación enviada a ntfy.sh/{NTFY_TOPIC}")
+    except requests.RequestException as e:
+        print(f"[AVISO] No se pudo enviar la notificación de alerta: {e}")
 
 
 if __name__ == "__main__":
-    import os
+    from datetime import datetime, timezone
 
-    datos = generar_datos()
+    datos, errores = generar_datos()
 
     os.makedirs("data", exist_ok=True)
     salida = {
         "actualizado_en": date.today().isoformat(),
+        "ultima_ejecucion_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "errores": errores,
         "por_fecha": datos,
     }
     with open("data/disponibilidad.json", "w", encoding="utf-8") as f:
@@ -265,3 +292,9 @@ if __name__ == "__main__":
 
     total_clubs = sum(len(v) for v in datos.values())
     print(f"Guardado data/disponibilidad.json con {len(datos)} días y {total_clubs} entradas de club en total.")
+
+    if errores:
+        print(f"[AVISO] Se han detectado {len(errores)} fallos durante esta ejecución.")
+        enviar_alerta(errores)
+    else:
+        print("Sin errores en esta ejecución.")
