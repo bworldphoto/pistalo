@@ -481,6 +481,7 @@
   let datosActualizadosEn = null;
   let datosRealesCargados = false;
   let busquedaRealizada = false;
+  let CLUBES_INFO = {};
 
   async function cargarDatosReales() {
     try {
@@ -492,10 +493,17 @@
     } catch (e) {
       console.error('No se pudo cargar data/disponibilidad.json', e);
       REAL_POR_FECHA = {};
-    } finally {
-      datosRealesCargados = true;
-      render();
     }
+
+    try {
+      const respClubes = await fetch('data/clubes.json', { cache: 'no-store' });
+      CLUBES_INFO = respClubes.ok ? await respClubes.json() : {};
+    } catch (e) {
+      CLUBES_INFO = {};
+    }
+
+    datosRealesCargados = true;
+    render();
   }
 
 
@@ -566,7 +574,12 @@
     const clubsDia = REAL_POR_FECHA[fecha] || [];
 
     const clubs = clubsDia
-      .map(c => ({ ...c, pistasFiltradas: filtrarPistas(c.pistas, tramo, tipoPista) }))
+      .filter(c => (CLUBES_INFO[c.club]?.activo ?? true) !== false)
+      .map(c => ({
+        ...c,
+        zona: CLUBES_INFO[c.club]?.ubicacion || c.zona,
+        pistasFiltradas: filtrarPistas(c.pistas, tramo, tipoPista),
+      }))
       .filter(c => c.pistasFiltradas.length > 0)
       .sort((a, b) => a.club.localeCompare(b.club));
 

@@ -108,6 +108,7 @@
     text-decoration: none; margin-top: 14px;
   }
   .btn:hover { filter: brightness(1.08); }
+  .btn:disabled { opacity: 0.55; cursor: default; filter: none; }
   .btn.secundario { background: var(--surface-2); color: var(--ink); }
 
   .proximamente {
@@ -119,6 +120,24 @@
   .proximamente p { font-size: 13.5px; color: var(--ink-faint); margin: 0; }
 
   code { background: var(--surface-2); padding: 2px 7px; border-radius: 6px; font-size: 13px; }
+
+  .club-row {
+    display: flex; align-items: center; gap: 16px; padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .club-row:last-child { border-bottom: none; }
+  .club-row .club-info { flex: 1; min-width: 0; }
+  .club-row .club-nombre-form { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 15.5px; }
+  .club-row .club-zona-actual { font-size: 12.5px; color: var(--ink-faint); margin-top: 2px; }
+  .club-row input[type="text"] {
+    width: 100%; margin-top: 8px; padding: 9px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: 14px;
+  }
+  .club-row input[type="text"]:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .toggle-activo { display: flex; align-items: center; gap: 8px; flex-shrink: 0; cursor: pointer; }
+  .toggle-activo input { width: 20px; height: 20px; accent-color: var(--blue); cursor: pointer; }
+  .toggle-activo span { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+  .club-row.inactivo .club-nombre-form { color: var(--ink-faint); text-decoration: line-through; }
 </style>
 </head>
 <body>
@@ -170,10 +189,12 @@
     <p>Próximo módulo — visitas, búsquedas y ciudades más consultadas.</p>
   </div>
 
-  <div class="proximamente">
-    <div class="icono">🏟️</div>
-    <h2>Gestión de clubes</h2>
-    <p>Próximo módulo — añadir y editar clubes, ubicación, comodidades y logo.</p>
+  <div class="card">
+    <h2>🏟️ Gestión de clubes</h2>
+    <div class="card-sub">Activa o desactiva cada club en la web, y añade su ubicación real.</div>
+    <div id="clubesContainer"><p style="color:var(--ink-soft); font-size:14px;">Cargando clubes…</p></div>
+    <button id="btnGuardarClubes" class="btn" style="border:none; cursor:pointer;" disabled>Guardar cambios</button>
+    <div id="clubesMensaje" style="font-size:13.5px; margin-top:10px;"></div>
   </div>
 </main>
 
@@ -246,6 +267,136 @@
     sessionStorage.removeItem('pistalo_admin_token');
     window.location.href = 'login.html';
   });
+
+  // ---------- Gestión de clubes ----------
+  const REPO = 'bworldphoto/pistalo';
+  const CLUBES_PATH = 'data/clubes.json';
+  const TOKEN = sessionStorage.getItem('pistalo_admin_token');
+  let clubesSha = null;
+
+  function utf8ToBase64(str) {
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode('0x' + p1)));
+  }
+  function base64ToUtf8(b64) {
+    return decodeURIComponent(atob(b64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+  }
+
+  async function cargarClubes() {
+    const contenedor = document.getElementById('clubesContainer');
+    const btnGuardar = document.getElementById('btnGuardarClubes');
+
+    try {
+      const respDatos = await fetch('data/disponibilidad.json', { cache: 'no-store' });
+      const datos = await respDatos.json();
+      const nombresSet = new Set();
+      const zonaPorClub = {};
+      Object.values(datos.por_fecha || {}).forEach(clubs => clubs.forEach(c => {
+        nombresSet.add(c.club);
+        zonaPorClub[c.club] = c.zona;
+      }));
+      const nombres = [...nombresSet].sort();
+
+      let configuracion = {};
+      const respClubes = await fetch(`https://api.github.com/repos/${REPO}/contents/${CLUBES_PATH}`, {
+        headers: { Authorization: `Bearer ${TOKEN}`, Accept: 'application/vnd.github+json' }
+      });
+
+      if (respClubes.status === 200) {
+        const data = await respClubes.json();
+        clubesSha = data.sha;
+        configuracion = JSON.parse(base64ToUtf8(data.content));
+      } else if (respClubes.status === 404) {
+        clubesSha = null;
+        configuracion = {};
+      } else {
+        throw new Error('código ' + respClubes.status);
+      }
+
+      contenedor.innerHTML = nombres.map(nombre => {
+        const conf = configuracion[nombre] || { activo: true, ubicacion: '' };
+        const inactivoClase = conf.activo === false ? 'inactivo' : '';
+        const nombreEscapado = nombre.replace(/"/g, '&quot;');
+        const ubicacionEscapada = (conf.ubicacion || '').replace(/"/g, '&quot;');
+        return `
+          <div class="club-row ${inactivoClase}" data-club="${nombreEscapado}">
+            <label class="toggle-activo">
+              <input type="checkbox" class="chk-activo" ${conf.activo !== false ? 'checked' : ''}>
+              <span>Activo</span>
+            </label>
+            <div class="club-info">
+              <div class="club-nombre-form">${nombre}</div>
+              <div class="club-zona-actual">Zona detectada por el scraper: ${zonaPorClub[nombre] || '—'}</div>
+              <input type="text" class="input-ubicacion" placeholder="Ubicación real (dirección o enlace de Google Maps)" value="${ubicacionEscapada}">
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      contenedor.querySelectorAll('.chk-activo').forEach(chk => {
+        chk.addEventListener('change', () => {
+          chk.closest('.club-row').classList.toggle('inactivo', !chk.checked);
+        });
+      });
+
+      btnGuardar.disabled = false;
+
+    } catch (e) {
+      contenedor.innerHTML = `<p style="color:var(--red); font-size:14px;">No se pudo cargar la gestión de clubes: ${e.message}</p>`;
+    }
+  }
+
+  async function guardarClubes() {
+    const btnGuardar = document.getElementById('btnGuardarClubes');
+    const mensaje = document.getElementById('clubesMensaje');
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Guardando…';
+    mensaje.textContent = '';
+
+    const nuevaConfiguracion = {};
+    document.querySelectorAll('.club-row').forEach(fila => {
+      const nombre = fila.dataset.club;
+      const activo = fila.querySelector('.chk-activo').checked;
+      const ubicacion = fila.querySelector('.input-ubicacion').value.trim();
+      nuevaConfiguracion[nombre] = { activo, ubicacion };
+    });
+
+    const body = {
+      message: 'Actualizar configuración de clubes desde el panel de administración',
+      content: utf8ToBase64(JSON.stringify(nuevaConfiguracion, null, 2)),
+    };
+    if (clubesSha) body.sha = clubesSha;
+
+    try {
+      const resp = await fetch(`https://api.github.com/repos/${REPO}/contents/${CLUBES_PATH}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${TOKEN}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.message || ('código ' + resp.status));
+      }
+
+      const data = await resp.json();
+      clubesSha = data.content.sha;
+      mensaje.style.color = 'var(--green)';
+      mensaje.textContent = '✅ Guardado. Los cambios tardarán 1-2 minutos en verse en la web.';
+    } catch (e) {
+      mensaje.style.color = 'var(--red)';
+      mensaje.textContent = '⚠️ No se pudo guardar: ' + e.message;
+    }
+
+    btnGuardar.disabled = false;
+    btnGuardar.textContent = 'Guardar cambios';
+  }
+
+  document.getElementById('btnGuardarClubes').addEventListener('click', guardarClubes);
+  cargarClubes();
 
   cargarEstado();
 </script>
