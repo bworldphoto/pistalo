@@ -1,9 +1,9 @@
 """
 Actualizar datos — Pistalo
 ============================================================
-Ejecuta los scrapers de Padel Paiporta y Tu Padel Valencia (solo Picanya),
-y guarda el resultado en data/disponibilidad.json con el formato exacto
-que consume la web (agrupado por fecha -> lista de clubes -> pistas).
+Ejecuta los scrapers de Padel Paiporta, Tu Padel Valencia (solo Picanya) y
+Padel Sedaví, y guarda el resultado en data/disponibilidad.json con el formato
+exacto que consume la web (agrupado por fecha -> lista de clubes -> pistas).
 
 Este script está pensado para ejecutarse automáticamente via GitHub
 Actions, pero también puedes correrlo tú a mano:
@@ -181,6 +181,165 @@ def tupadel_snapshot(fecha: date) -> list[dict]:
 
 
 # ----------------------------------------------------------------------
+# PADEL SEDAVÍ
+# ----------------------------------------------------------------------
+# La web sirve el HTML ya escrito. Cada pista es un <ul class="partidas"> y
+# cada franja un <li class="partida ..."> con un enlace cuyo href acaba en
+#   /partidas/padel/AAAA-MM-DD#partida_<nº pista>_<HH>-<MM>
+# El estado de la franja va en las clases del <li>:
+#   (ninguna extra)              -> "Pista libre": nadie ha reservado
+#   partida-participante-libre   -> "Partida abierta": alguien ha reservado y busca gente
+#   partida-reservada            -> "Partida cerrada": reservada
+#   partida-reserva              -> reserva (viene siempre junto a partida-reservada)
+# Además, cada franja tiene su tarjeta con un botón «Lista de espera (N)»
+# (atributos data-pista-id y data-hora). Si N > 0 hay gente esperando esa
+# pista, y para Pistalo cuenta como NO disponible aunque no lleve clase de estado.
+# Para Pistalo, la pista solo está LIBRE si no lleva ninguna clase de estado
+# Y además nadie está en su lista de espera.
+
+SEDAVI_BASE_URL = "https://www.padelsedavi.com/partidas/padel"
+
+# ⚠️ PENDIENTE DE CONFIRMAR: la web no dice si las pistas son cubiertas o
+# exteriores. Valores posibles: "Cubierta" o "Exterior".
+SEDAVI_TIPO_PISTAS = "Cubierta"
+
+SEDAVI_CLASES_BASE = {"partida", "partida-deporte-padel"}
+SEDAVI_CLASES_OCUPADA = {"partida-reservada", "partida-participante-libre", "partida-reserva"}
+
+# Clases de estado que el scraper no conoce. Se tratan como «ocupada» por
+# seguridad, y se avisa una sola vez al final de la ejecución.
+sedavi_clases_desconocidas: set[str] = set()
+
+# Franjas que parecían libres pero cuya lista de espera no hemos podido
+# comprobar (no se encontró su botón). Se marcan como no disponibles.
+sedavi_franjas_sin_lista: list[str] = []
+
+_SEDAVI_ENLACE = re.compile(r"(\d{4}-\d{2}-\d{2})#partida_(\d+)_(\d{2})-(\d{2})")
+
+
+class DiaNoDisponible(Exception):
+    """La web no ofrece ese día (por ejemplo, ya pasó o aún no está abierto)."""
+
+
+class EstructuraCambiada(Exception):
+    """La página no tiene la estructura esperada (probable cambio en la web)."""
+
+
+def sedavi_url_dia(fecha: date) -> str:
+    return f"{SEDAVI_BASE_URL}/{fecha.isoformat()}"
+
+
+def sedavi_obtener_html(url: str) -> str:
+    resp = requests.get(url, headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+    return resp.text
+
+
+def _sumar_minutos(hora: int, minuto: int, minutos: int = 90) -> str:
+    total = hora * 60 + minuto + minutos
+    return f"{(total // 60) % 24:02d}:{total % 60:02d}"
+
+
+def _sedavi_esperas(soup) -> dict:
+    """Devuelve {(nº pista, "HH:MM"): personas en lista de espera}."""
+    esperas: dict[tuple[int, str], int] = {}
+    for boton in soup.select("button.lista[data-hora][data-pista-id]"):
+        if "espera" not in boton.get_text(" ", strip=True).lower():
+            continue
+        try:
+            pista = int(boton["data-pista-id"])
+            hh, _, mm = boton["data-hora"].partition(":")
+            hora = f"{int(hh):02d}:{int(mm):02d}"
+        except ValueError:
+            continue
+        contador = boton.select_one("span.count")
+        m = re.search(r"\d+", contador.get_text(strip=True)) if contador else None
+        n = int(m.group()) if m else 0
+        # Si por lo que sea el mismo botón sale dos veces, nos quedamos con el mayor
+        esperas[(pista, hora)] = max(esperas.get((pista, hora), 0), n)
+    return esperas
+
+
+def sedavi_parsear(html: str, fecha: date) -> list[dict]:
+    soup = BeautifulSoup(html, "html.parser")
+    esperas = _sedavi_esperas(soup)
+    franjas = []
+    ya_vistas = set()
+    fechas_vistas = set()
+
+    for li in soup.select("li.partida.partida-deporte-padel"):
+        enlace = li.find("a", href=True)
+        m = _SEDAVI_ENLACE.search(enlace["href"]) if enlace else None
+        if not m:
+            continue
+        fecha_enlace = m.group(1)
+        num_pista, hh, mm = int(m.group(2)), int(m.group(3)), int(m.group(4))
+        fechas_vistas.add(fecha_enlace)
+
+        # Solo nos quedamos con las franjas del día que hemos pedido: si la
+        # web nos devuelve otro día (p. ej. al pedir una fecha pasada nos da
+        # la de hoy), no queremos etiquetar esos datos con la fecha equivocada.
+        if fecha_enlace != fecha.isoformat():
+            continue
+        if (num_pista, hh, mm) in ya_vistas:
+            continue
+        ya_vistas.add((num_pista, hh, mm))
+
+        clases = set(li.get("class", []))
+        desconocidas = clases - SEDAVI_CLASES_BASE - SEDAVI_CLASES_OCUPADA
+        sedavi_clases_desconocidas.update(desconocidas)
+        candidata_libre = not (clases & SEDAVI_CLASES_OCUPADA) and not desconocidas
+
+        franjas.append({
+            "_orden": (num_pista, hh, mm),
+            "_candidata": candidata_libre,
+            "pista": f"Pista {num_pista}",
+            "tipo": SEDAVI_TIPO_PISTAS,
+            "hora_inicio": f"{hh:02d}:{mm:02d}",
+            "hora_fin": _sumar_minutos(hh, mm),
+            "libre": False,
+        })
+
+    if not franjas and fechas_vistas:
+        raise DiaNoDisponible(
+            f"La web no ofrece el {fecha.isoformat()} (ha devuelto datos de: {', '.join(sorted(fechas_vistas))})."
+        )
+
+    # Si hay franjas pero no encontramos NINGÚN botón de «Lista de espera»,
+    # no podemos saber si hay gente esperando: mejor no publicar nada que
+    # publicar pistas «libres» que quizá no lo son.
+    if franjas and not esperas:
+        raise EstructuraCambiada(
+            "Se han encontrado franjas pero ningún botón de «Lista de espera» en la página, "
+            "así que no se puede saber si hay gente esperando cada pista. "
+            "Probablemente la web ha cambiado su estructura. No se han publicado datos de este día."
+        )
+
+    sin_lista = []
+    for f in franjas:
+        if not f["_candidata"]:
+            continue
+        clave = (f["_orden"][0], f["hora_inicio"])
+        if clave in esperas:
+            f["libre"] = esperas[clave] == 0
+        else:
+            # Parece libre pero no podemos comprobar su lista de espera: no disponible
+            sin_lista.append(f"{fecha.isoformat()} {f['pista']} {f['hora_inicio']}")
+    sedavi_franjas_sin_lista.extend(sin_lista)
+
+    franjas.sort(key=lambda f: f["_orden"])
+    for f in franjas:
+        del f["_orden"]
+        del f["_candidata"]
+    return franjas
+
+
+def sedavi_snapshot(fecha: date) -> list[dict]:
+    html = sedavi_obtener_html(sedavi_url_dia(fecha))
+    return sedavi_parsear(html, fecha)
+
+
+# ----------------------------------------------------------------------
 # TRANSFORMAR AL FORMATO DE LA WEB
 # ----------------------------------------------------------------------
 
@@ -219,6 +378,7 @@ def agrupar_por_pista(franjas: list[dict]) -> list[dict]:
 PISTAS_MINIMAS_ESPERADAS = {
     "Padel Paiporta": 4,             # normalmente hay 6 (5 + exterior)
     "Tu Padel Valencia — Picanya": 4,  # normalmente hay 5
+    "Padel Sedaví": 5,               # en el HTML se ven al menos 8 columnas de pista
 }
 
 
@@ -238,6 +398,18 @@ def procesar_club(nombre_club: str, zona: str, url: str, snapshot_fn, fecha: dat
     try:
         franjas = snapshot_fn(fecha)
         pistas = agrupar_por_pista(franjas)
+    except DiaNoDisponible as e:
+        # No es un fallo: simplemente ese día no está publicado. Se omite
+        # sin alerta (si ocurre con TODOS los días, se avisa al final).
+        print(f"[INFO] {nombre_club} ({fecha_str}): {e}")
+        return None, None
+    except EstructuraCambiada as e:
+        return None, {
+            "club": nombre_club,
+            "fecha": fecha_str,
+            "tipo": "datos_incompletos",
+            "mensaje": str(e),
+        }
     except requests.RequestException as e:
         return None, {
             "club": nombre_club,
@@ -303,6 +475,8 @@ def procesar_club(nombre_club: str, zona: str, url: str, snapshot_fn, fecha: dat
 def generar_datos() -> tuple[dict, list]:
     resultado_por_fecha = {}
     errores = []
+    sedavi_clases_desconocidas.clear()
+    sedavi_franjas_sin_lista.clear()
 
     for i in range(DIAS_A_CONSULTAR):
         fecha = date.today() + timedelta(days=i)
@@ -331,8 +505,61 @@ def generar_datos() -> tuple[dict, list]:
             print(f"[AVISO] {error_tupadel['club']} ({fecha_str}): {error_tupadel['mensaje']}")
             errores.append(error_tupadel)
 
+        club_sedavi, error_sedavi = procesar_club(
+            "Padel Sedaví", "Sedaví, Valencia", SEDAVI_BASE_URL,
+            sedavi_snapshot, fecha,
+        )
+        if club_sedavi:
+            clubs_del_dia.append(club_sedavi)
+        if error_sedavi:
+            print(f"[AVISO] {error_sedavi['club']} ({fecha_str}): {error_sedavi['mensaje']}")
+            errores.append(error_sedavi)
+
         resultado_por_fecha[fecha_str] = clubs_del_dia
         time.sleep(3)
+
+    # --- Avisos globales, una sola vez por ejecución ---
+    if sedavi_clases_desconocidas:
+        errores.append({
+            "club": "Padel Sedaví",
+            "fecha": date.today().isoformat(),
+            "tipo": "datos_incompletos",
+            "mensaje": (
+                "La web usa clases de estado que el scraper no conoce: "
+                f"{', '.join(sorted(sedavi_clases_desconocidas))}. "
+                "Esas franjas se han marcado como «ocupadas» por seguridad. "
+                "Revisa qué significan (por ejemplo, un tipo de reserva nuevo)."
+            ),
+        })
+
+    if sedavi_franjas_sin_lista:
+        ejemplos = ", ".join(sedavi_franjas_sin_lista[:5])
+        mas = f" (y {len(sedavi_franjas_sin_lista) - 5} más)" if len(sedavi_franjas_sin_lista) > 5 else ""
+        errores.append({
+            "club": "Padel Sedaví",
+            "fecha": date.today().isoformat(),
+            "tipo": "datos_incompletos",
+            "mensaje": (
+                f"{len(sedavi_franjas_sin_lista)} franja(s) que parecían libres no tienen su botón de "
+                "«Lista de espera» en la página, así que no se ha podido comprobar si hay gente esperando. "
+                f"Se han marcado como no disponibles por seguridad. Ejemplos: {ejemplos}{mas}."
+            ),
+        })
+
+    clubs_con_datos = {c["club"] for clubs in resultado_por_fecha.values() for c in clubs}
+    clubs_con_error = {e["club"] for e in errores}
+    for nombre in PISTAS_MINIMAS_ESPERADAS:
+        if nombre not in clubs_con_datos and nombre not in clubs_con_error:
+            errores.append({
+                "club": nombre,
+                "fecha": date.today().isoformat(),
+                "tipo": "datos_incompletos",
+                "mensaje": (
+                    "Este club no ha devuelto datos de ningún día en esta ejecución, "
+                    "aunque tampoco ha dado un error de conexión. Puede que la web "
+                    "haya cambiado la forma de indicar las fechas."
+                ),
+            })
 
     return resultado_por_fecha, errores
 
