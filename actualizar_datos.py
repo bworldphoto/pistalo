@@ -490,12 +490,30 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
                 libre = False  # ya ha pasado: no se puede reservar
             if fin_res_min is not None and fin_t > fin_res_min:
                 libre = False  # aún no se admiten reservas para esa hora
+
+            duracion_min = None
+            if libre:
+                # Hasta dónde llega el hueco de verdad: lo limita lo que venga
+                # antes entre el cierre del centro, el fin de la ventana de
+                # reservas, o el inicio de la siguiente reserva REAL (no el
+                # siguiente marca de 30 min descartada del grid, que es otra
+                # cosa: ver el caso "08:30 libre, 09:00 tachada" comentado
+                # más abajo, en la constante MATCHPOINT_DURACION_MIN).
+                limite = ci_min
+                if fin_res_min is not None:
+                    limite = min(limite, fin_res_min)
+                siguientes_inicios = [ini for ini, _ in ocupadas if ini > t]
+                if siguientes_inicios:
+                    limite = min(limite, min(siguientes_inicios))
+                duracion_min = limite - t
+
             franjas.append({
                 "pista": nombre,
                 "tipo": tipo_pistas,
                 "hora_inicio": _mp_hhmm(t),
                 "hora_fin": _mp_hhmm(fin_t),
                 "libre": libre,
+                "duracion_libre_min": duracion_min,
             })
             t += MATCHPOINT_PASO_MIN
     return franjas
@@ -599,12 +617,20 @@ def agrupar_por_pista(franjas: list[dict]) -> list[dict]:
         nombre_limpio = nombre_limpio.title() if nombre_limpio.isupper() else nombre_limpio
         slots = [normalizar_hora(f["hora_inicio"]) for f in lista]
         ocupadas = [normalizar_hora(f["hora_inicio"]) for f in lista if not f["libre"]]
-        pistas.append({
+        pista_dict = {
             "pista": nombre_limpio,
             "tipo": tipo,
             "slots": slots,
             "ocupadas": ocupadas,
-        })
+        }
+        # Solo los clubes de duración variable (ver MatchpointClient) traen
+        # este dato calculado a partir de las reservas reales.
+        if any("duracion_libre_min" in f for f in lista):
+            pista_dict["duraciones"] = {
+                normalizar_hora(f["hora_inicio"]): f["duracion_libre_min"]
+                for f in lista if f.get("libre") and f.get("duracion_libre_min") is not None
+            }
+        pistas.append(pista_dict)
     return pistas
 
 
@@ -773,6 +799,12 @@ def generar_datos() -> tuple[dict, list]:
             FHCV_CLUB, FHCV_ZONA, f"{FHCV_BASE_URL}/Booking/Grid.aspx",
             fhcv.snapshot, fecha,
         )
+        if club_fhcv:
+            # A diferencia de los demás clubes (franjas de duración fija), aquí
+            # cada franja libre solo garantiza un mínimo de 60 min: puede que
+            # en realidad haya más tiempo libre a continuación, o puede que no.
+            # Con esta marca, la web calcula y muestra cuánto hay de verdad.
+            club_fhcv["pasos_de_30min"] = True
         if club_fhcv is None and error_fhcv is None:
             clubs_con_ausencia_explicada.add(FHCV_CLUB)
         if club_fhcv:
