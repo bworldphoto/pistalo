@@ -2,7 +2,7 @@
 Actualizar datos — Pistalo
 ============================================================
 Ejecuta los scrapers de Padel Paiporta, Tu Padel Valencia (solo Picanya) y
-Padel Sedaví, y guarda el resultado en data/disponibilidad.json con el formato
+Padel Sedaví y el Polideportivo Verge del Carme (Beteró), y guarda el resultado en data/disponibilidad.json con el formato
 exacto que consume la web (agrupado por fecha -> lista de clubes -> pistas).
 
 Este script está pensado para ejecutarse automáticamente via GitHub
@@ -21,7 +21,7 @@ import os
 import json
 import time
 import traceback
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import requests
 from bs4 import BeautifulSoup
@@ -31,6 +31,19 @@ HEADERS = {
 }
 
 DIAS_A_CONSULTAR = 7
+
+# El robot de GitHub corre en hora UTC, que de madrugada va un día por detrás de
+# España. Las webs de los clubes cuentan los días en hora española, así que
+# calculamos «hoy» en hora de Madrid (si no hay zonas horarias, hora local).
+try:
+    from zoneinfo import ZoneInfo
+    _TZ_MADRID = ZoneInfo("Europe/Madrid")
+except Exception:  # Python < 3.9 o sin base de zonas horarias
+    _TZ_MADRID = None
+
+
+def hoy() -> date:
+    return datetime.now(_TZ_MADRID).date() if _TZ_MADRID else datetime.now().date()
 
 
 # ----------------------------------------------------------------------
@@ -340,6 +353,230 @@ def sedavi_snapshot(fecha: date) -> list[dict]:
 
 
 # ----------------------------------------------------------------------
+# POLIDEPORTIVO VERGE DEL CARME — BETERÓ (plataforma Matchpoint)
+# ----------------------------------------------------------------------
+# AUTORIZACIÓN: el robots.txt de esta web no permite el acceso automatizado.
+# Pistalo ha recibido el visto bueno de los responsables (comunicado de forma
+# verbal el 28-09-2026). Conviene conservar constancia por escrito.
+#
+# La web usa la plataforma Matchpoint, que ofrece una API JSON en vez de HTML:
+#   1) GET  /Booking/Grid.aspx                 -> la página trae una «key»
+#   2) POST /booking/srvc.aspx/ObtenerCuadro   {"idCuadro", "fecha" (d/m/aaaa), "key"}
+#
+# La respuesta NO trae franjas fijas: por cada pista trae los RANGOS OCUPADOS
+# (con duración variable: 60, 90, 120 min...). Pistalo trabaja con franjas
+# (horas de inicio), así que aquí las calculamos: para cada hora de inicio
+# posible (cada MATCHPOINT_PASO_MIN dentro del horario del centro), la pista
+# está libre si una sesión de MATCHPOINT_DURACION_MIN minutos cabe entera sin
+# solaparse con ninguna ocupación y dentro del periodo en que se admiten
+# reservas (hoy no se puede reservar en el pasado, y el último día solo hasta
+# cierta hora). Cualquier tipo de ocupación (clase, reserva, partida...) cuenta
+# como ocupada.
+
+FHCV_BASE_URL = "https://reservas.fhcv.es"
+FHCV_ID_CUADRO = "3"  # "PADEL" del Polideportivo Verge del Carme-Beteró
+FHCV_CLUB = "Polideportivo Verge del Carme — Beteró"
+FHCV_ZONA = "Beteró, Valencia"
+
+# ⚠️ PENDIENTE DE CONFIRMAR: la web no dice si las pistas son cubiertas o
+# exteriores. Valores posibles: "Cubierta" o "Exterior".
+FHCV_TIPO_PISTAS = "Exterior"
+
+MATCHPOINT_PASO_MIN = 30
+# Duración mínima de una reserva (la más corta que hemos visto en los datos es
+# de 60 min). Si el club solo permitiera reservas de 90 min, subir este valor.
+MATCHPOINT_DURACION_MIN = 60
+
+_MATCHPOINT_CLAVE = re.compile(r"""=\s*['"]([A-Za-z0-9+/]{40,}={0,2})['"]\s*;""")
+_RE_MP_FECHA = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{4})")
+_RE_MP_FECHA_HORA = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2}):(\d{2})")
+_RE_MP_HORA = re.compile(r"^\s*(\d{1,2}):(\d{2})")
+
+
+def _matchpoint_claves(html: str) -> list:
+    """Todas las cadenas largas tipo base64 asignadas a una variable de la página."""
+    vistas, claves = set(), []
+    for m in _MATCHPOINT_CLAVE.finditer(html):
+        if m.group(1) not in vistas:
+            vistas.add(m.group(1))
+            claves.append(m.group(1))
+    return claves
+
+
+def _mp_fecha(txt):
+    m = _RE_MP_FECHA.search(txt or "")
+    if not m:
+        return None
+    try:
+        return date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+    except ValueError:
+        return None
+
+
+def _mp_fecha_hora(txt):
+    m = _RE_MP_FECHA_HORA.search(txt or "")
+    if not m:
+        return None
+    try:
+        return datetime(int(m.group(3)), int(m.group(2)), int(m.group(1)), int(m.group(4)), int(m.group(5)))
+    except ValueError:
+        return None
+
+
+def _mp_minutos(hhmm):
+    m = _RE_MP_HORA.match(hhmm or "")
+    return int(m.group(1)) * 60 + int(m.group(2)) if m else None
+
+
+def _mp_hhmm(minutos: int) -> str:
+    return f"{(minutos // 60) % 24:02d}:{minutos % 60:02d}"
+
+
+def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
+    """Convierte la respuesta de ObtenerCuadro en franjas (hora de inicio + libre/ocupada)."""
+    if _mp_fecha(d.get("StrFecha")) != fecha:
+        raise DiaNoDisponible(
+            f"La web ha devuelto datos del {d.get('StrFecha')!r} en vez del {fecha.isoformat()}."
+        )
+    if d.get("FechaInhabil"):
+        raise DiaNoDisponible(f"El {fecha.isoformat()} figura como día inhábil (centro cerrado).")
+
+    inicio_dia = datetime(fecha.year, fecha.month, fecha.day)
+
+    def a_minutos(dt: datetime) -> int:
+        return int((dt - inicio_dia).total_seconds() // 60)
+
+    apertura = _mp_fecha_hora(d.get("StrHoraAperturaCentro"))
+    cierre = _mp_fecha_hora(d.get("StrHoraCierreCentro"))
+    if apertura and cierre:
+        ap_min, ci_min = a_minutos(apertura), a_minutos(cierre)
+    else:
+        ap_min, ci_min = _mp_minutos(d.get("StrHoraInicio")), _mp_minutos(d.get("StrHoraFin"))
+    if ap_min is None or ci_min is None or ci_min <= ap_min:
+        raise EstructuraCambiada(
+            "No se han podido leer las horas de apertura y cierre del centro "
+            f"(apertura={d.get('StrHoraAperturaCentro')!r}, cierre={d.get('StrHoraCierreCentro')!r}). "
+            "Probablemente la web ha cambiado su formato. No se han publicado datos de este día."
+        )
+
+    ini_res = _mp_fecha_hora(d.get("StrFechaHoraInicioReservas"))
+    fin_res = _mp_fecha_hora(d.get("StrFechaHoraFinReservas"))
+    ini_res_min = a_minutos(ini_res) if ini_res else None
+    fin_res_min = a_minutos(fin_res) if fin_res else None
+
+    franjas = []
+    for i, col in enumerate(d.get("Columnas") or [], 1):
+        nombre = (col.get("TextoPrincipal") or "").strip() or f"Pista {i}"
+
+        ocupadas = []
+        for oc in col.get("Ocupaciones") or []:
+            ini = _mp_minutos(oc.get("StrHoraInicio"))
+            fin = _mp_minutos(oc.get("StrHoraFin"))
+            if fin == 0 and ini:  # una reserva que termina a las 00:00
+                fin = 24 * 60
+            if ini is None or fin is None or fin <= ini:
+                raise EstructuraCambiada(
+                    f"Una ocupación de «{nombre}» no tiene horas legibles "
+                    f"(inicio={oc.get('StrHoraInicio')!r}, fin={oc.get('StrHoraFin')!r}). "
+                    "No se han publicado datos de este día."
+                )
+            ocupadas.append((ini, fin))
+
+        t = ap_min
+        while t + MATCHPOINT_DURACION_MIN <= ci_min:
+            fin_t = t + MATCHPOINT_DURACION_MIN
+            libre = not any(t < fin and fin_t > ini for ini, fin in ocupadas)
+            if ini_res_min is not None and t < ini_res_min:
+                libre = False  # ya ha pasado: no se puede reservar
+            if fin_res_min is not None and fin_t > fin_res_min:
+                libre = False  # aún no se admiten reservas para esa hora
+            franjas.append({
+                "pista": nombre,
+                "tipo": tipo_pistas,
+                "hora_inicio": _mp_hhmm(t),
+                "hora_fin": _mp_hhmm(fin_t),
+                "libre": libre,
+            })
+            t += MATCHPOINT_PASO_MIN
+    return franjas
+
+
+class MatchpointClient:
+    """
+    Mantiene una sesión y una «key» para varias consultas seguidas (como hace
+    el navegador al cambiar de día sin recargar la página), y las renueva una
+    vez si el servidor devuelve una respuesta vacía.
+    """
+
+    def __init__(self, base_url: str, id_cuadro: str, tipo_pistas: str):
+        self.base = base_url.rstrip("/")
+        self.grid_url = f"{self.base}/Booking/Grid.aspx"
+        self.api_url = f"{self.base}/booking/srvc.aspx/ObtenerCuadro"
+        self.id_cuadro = id_cuadro
+        self.tipo_pistas = tipo_pistas
+        self.sesion = None
+        self.claves: list = []
+
+    def _cabeceras(self, api: bool) -> dict:
+        # Las mismas que envía un navegador (idioma incluido: sin él, el servidor
+        # puede leer las fechas d/m/aaaa en formato inglés), pero nos seguimos
+        # identificando con nuestro propio nombre.
+        cab = {"User-Agent": HEADERS["User-Agent"], "Accept-Language": "es-ES,es;q=0.9"}
+        if api:
+            cab.update({
+                "Accept": "application/json, text/javascript, */*; q=0.01",
+                "Origin": self.base,
+                "Referer": self.grid_url,
+                "X-Requested-With": "XMLHttpRequest",
+                "Content-Type": "application/json; charset=UTF-8",
+            })
+        return cab
+
+    def _iniciar(self) -> None:
+        self.sesion, self.claves = None, []
+        sesion = requests.Session()
+        resp = sesion.get(self.grid_url, headers=self._cabeceras(False), timeout=15)
+        resp.raise_for_status()
+        claves = _matchpoint_claves(resp.text)
+        if not claves:
+            raise EstructuraCambiada(
+                "No se ha encontrado la clave de acceso («key») en la página principal de reservas. "
+                "Probablemente la web ha cambiado su estructura."
+            )
+        self.sesion, self.claves = sesion, claves
+
+    def _pedir(self, fecha: date) -> dict:
+        ultimo: dict = {}
+        for clave in self.claves[:3]:
+            cuerpo = {"idCuadro": self.id_cuadro, "fecha": f"{fecha.day}/{fecha.month}/{fecha.year}", "key": clave}
+            resp = self.sesion.post(self.api_url, headers=self._cabeceras(True), data=json.dumps(cuerpo), timeout=15)
+            resp.raise_for_status()
+            datos = resp.json()["d"]
+            ultimo = datos
+            if datos.get("Columnas"):
+                return datos
+        return ultimo
+
+    def snapshot(self, fecha: date) -> list[dict]:
+        if self.sesion is None:
+            self._iniciar()
+        datos = self._pedir(fecha)
+        if not datos.get("Columnas") and not datos.get("FechaInhabil"):
+            self._iniciar()  # un reintento con sesión y clave nuevas
+            datos = self._pedir(fecha)
+        if not datos.get("Columnas"):
+            if datos.get("FechaInhabil"):
+                raise DiaNoDisponible(f"El {fecha.isoformat()} figura como día inhábil (centro cerrado).")
+            raise EstructuraCambiada(
+                "La API ha devuelto una respuesta vacía, incluso tras renovar la sesión "
+                f"(Nombre={datos.get('Nombre')!r}, StrFecha={datos.get('StrFecha')!r}, "
+                f"TieneClienteAcceso={datos.get('TieneClienteAcceso')!r}). Puede que el servidor "
+                "rechace la clave o el formato de la fecha, o que la web haya cambiado."
+            )
+        return matchpoint_parsear(datos, fecha, self.tipo_pistas)
+
+
+# ----------------------------------------------------------------------
 # TRANSFORMAR AL FORMATO DE LA WEB
 # ----------------------------------------------------------------------
 
@@ -379,6 +616,7 @@ PISTAS_MINIMAS_ESPERADAS = {
     "Padel Paiporta": 4,             # normalmente hay 6 (5 + exterior)
     "Tu Padel Valencia — Picanya": 4,  # normalmente hay 5
     "Padel Sedaví": 5,               # en el HTML se ven al menos 8 columnas de pista
+    FHCV_CLUB: 4,                    # el club tiene 5 pistas en total (confirmado 28-09-2026)
 }
 
 
@@ -391,6 +629,11 @@ def procesar_club(nombre_club: str, zona: str, url: str, snapshot_fn, fecha: dat
       - Si conecta bien pero los datos parecen incompletos/raros: (club_dict, error_dict)
         (se guardan igualmente los datos parciales que se hayan podido sacar,
         y además se avisa del problema)
+      - Si ese día en concreto no está disponible por un motivo CONOCIDO y
+        esperado (día inhábil, fuera del rango que ofrece la web...): (None, None).
+        Este es el ÚNICO caso en el que se devuelve (None, None); generar_datos()
+        se apoya en eso para no confundirlo con un club que da la callada por
+        respuesta sin explicación.
     """
     fecha_str = fecha.isoformat()
 
@@ -477,9 +720,14 @@ def generar_datos() -> tuple[dict, list]:
     errores = []
     sedavi_clases_desconocidas.clear()
     sedavi_franjas_sin_lista.clear()
+    fhcv = MatchpointClient(FHCV_BASE_URL, FHCV_ID_CUADRO, FHCV_TIPO_PISTAS)
+    # Clubes que en algún día han dado (None, None): ese día en
+    # concreto no está disponible por un motivo YA EXPLICADO (ver
+    # docstring de procesar_club), así que no cuentan como "sospechosos".
+    clubs_con_ausencia_explicada: set[str] = set()
 
     for i in range(DIAS_A_CONSULTAR):
-        fecha = date.today() + timedelta(days=i)
+        fecha = hoy() + timedelta(days=i)
         fecha_str = fecha.isoformat()
         clubs_del_dia = []
 
@@ -487,6 +735,8 @@ def generar_datos() -> tuple[dict, list]:
             "Padel Paiporta", "Paiporta, Valencia", "https://www.padelpaiporta.com/",
             paiporta_snapshot, fecha,
         )
+        if club_paiporta is None and error_paiporta is None:
+            clubs_con_ausencia_explicada.add("Padel Paiporta")
         if club_paiporta:
             clubs_del_dia.append(club_paiporta)
         if error_paiporta:
@@ -499,6 +749,8 @@ def generar_datos() -> tuple[dict, list]:
             "Tu Padel Valencia — Picanya", "Picanya, Valencia", "https://www.tupadelvalencia.com/Partidas_Padel.aspx",
             tupadel_snapshot, fecha,
         )
+        if club_tupadel is None and error_tupadel is None:
+            clubs_con_ausencia_explicada.add("Tu Padel Valencia — Picanya")
         if club_tupadel:
             clubs_del_dia.append(club_tupadel)
         if error_tupadel:
@@ -509,11 +761,25 @@ def generar_datos() -> tuple[dict, list]:
             "Padel Sedaví", "Sedaví, Valencia", SEDAVI_BASE_URL,
             sedavi_snapshot, fecha,
         )
+        if club_sedavi is None and error_sedavi is None:
+            clubs_con_ausencia_explicada.add("Padel Sedaví")
         if club_sedavi:
             clubs_del_dia.append(club_sedavi)
         if error_sedavi:
             print(f"[AVISO] {error_sedavi['club']} ({fecha_str}): {error_sedavi['mensaje']}")
             errores.append(error_sedavi)
+
+        club_fhcv, error_fhcv = procesar_club(
+            FHCV_CLUB, FHCV_ZONA, f"{FHCV_BASE_URL}/Booking/Grid.aspx",
+            fhcv.snapshot, fecha,
+        )
+        if club_fhcv is None and error_fhcv is None:
+            clubs_con_ausencia_explicada.add(FHCV_CLUB)
+        if club_fhcv:
+            clubs_del_dia.append(club_fhcv)
+        if error_fhcv:
+            print(f"[AVISO] {error_fhcv['club']} ({fecha_str}): {error_fhcv['mensaje']}")
+            errores.append(error_fhcv)
 
         resultado_por_fecha[fecha_str] = clubs_del_dia
         time.sleep(3)
@@ -522,7 +788,7 @@ def generar_datos() -> tuple[dict, list]:
     if sedavi_clases_desconocidas:
         errores.append({
             "club": "Padel Sedaví",
-            "fecha": date.today().isoformat(),
+            "fecha": hoy().isoformat(),
             "tipo": "datos_incompletos",
             "mensaje": (
                 "La web usa clases de estado que el scraper no conoce: "
@@ -537,7 +803,7 @@ def generar_datos() -> tuple[dict, list]:
         mas = f" (y {len(sedavi_franjas_sin_lista) - 5} más)" if len(sedavi_franjas_sin_lista) > 5 else ""
         errores.append({
             "club": "Padel Sedaví",
-            "fecha": date.today().isoformat(),
+            "fecha": hoy().isoformat(),
             "tipo": "datos_incompletos",
             "mensaje": (
                 f"{len(sedavi_franjas_sin_lista)} franja(s) que parecían libres no tienen su botón de "
@@ -549,10 +815,12 @@ def generar_datos() -> tuple[dict, list]:
     clubs_con_datos = {c["club"] for clubs in resultado_por_fecha.values() for c in clubs}
     clubs_con_error = {e["club"] for e in errores}
     for nombre in PISTAS_MINIMAS_ESPERADAS:
+        if nombre in clubs_con_ausencia_explicada:
+            continue  # su ausencia ya tiene una explicación conocida (ver arriba)
         if nombre not in clubs_con_datos and nombre not in clubs_con_error:
             errores.append({
                 "club": nombre,
-                "fecha": date.today().isoformat(),
+                "fecha": hoy().isoformat(),
                 "tipo": "datos_incompletos",
                 "mensaje": (
                     "Este club no ha devuelto datos de ningún día en esta ejecución, "
@@ -596,14 +864,14 @@ def enviar_alerta(errores: list) -> None:
 
 
 if __name__ == "__main__":
-    from datetime import datetime, timezone
+    from datetime import timezone
 
     try:
         datos, errores = generar_datos()
 
         os.makedirs("data", exist_ok=True)
         salida = {
-            "actualizado_en": date.today().isoformat(),
+            "actualizado_en": hoy().isoformat(),
             "ultima_ejecucion_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "errores": errores,
             "por_fecha": datos,
@@ -631,7 +899,7 @@ if __name__ == "__main__":
         print(tb_completa)
         enviar_alerta([{
             "club": "Ejecución completa",
-            "fecha": date.today().isoformat(),
+            "fecha": hoy().isoformat(),
             "tipo": "error_inesperado",
             "mensaje": f"El script ha fallado por completo ({type(e).__name__}: {e}). No se ha actualizado ningún dato esta vez.",
         }])
