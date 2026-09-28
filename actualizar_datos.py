@@ -505,7 +505,11 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
                 siguientes_inicios = [ini for ini, _ in ocupadas if ini > t]
                 if siguientes_inicios:
                     limite = min(limite, min(siguientes_inicios))
-                duracion_min = limite - t
+                duracion_hueco = limite - t
+                # Solo se puede reservar en bloques de 60 o 90 min, así que
+                # nunca hay que mostrar un número mayor que 90, aunque el
+                # hueco físico sea más largo (no se puede reservar "seguido").
+                duracion_min = 90 if duracion_hueco >= 90 else 60
 
             franjas.append({
                 "pista": nombre,
