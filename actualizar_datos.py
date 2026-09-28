@@ -491,7 +491,7 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
             if fin_res_min is not None and fin_t > fin_res_min:
                 libre = False  # aún no se admiten reservas para esa hora
 
-            duracion_min = None
+            duraciones_posibles = None
             if libre:
                 # Hasta dónde llega el hueco de verdad: lo limita lo que venga
                 # antes entre el cierre del centro, el fin de la ventana de
@@ -506,10 +506,11 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
                 if siguientes_inicios:
                     limite = min(limite, min(siguientes_inicios))
                 duracion_hueco = limite - t
-                # Solo se puede reservar en bloques de 60 o 90 min, así que
-                # nunca hay que mostrar un número mayor que 90, aunque el
-                # hueco físico sea más largo (no se puede reservar "seguido").
-                duracion_min = 90 if duracion_hueco >= 90 else 60
+                # Solo se puede reservar en bloques de 60 o 90 min. El hueco
+                # ya garantiza al menos 60 (es la condición del bucle); si
+                # además da para 90, esa también es una opción VÁLIDA A LA
+                # VEZ (no en vez de 60) — el jugador elige cuál reservar.
+                duraciones_posibles = [60, 90] if duracion_hueco >= 90 else [60]
 
             franjas.append({
                 "pista": nombre,
@@ -517,7 +518,7 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
                 "hora_inicio": _mp_hhmm(t),
                 "hora_fin": _mp_hhmm(fin_t),
                 "libre": libre,
-                "duracion_libre_min": duracion_min,
+                "duraciones_posibles": duraciones_posibles,
             })
             t += MATCHPOINT_PASO_MIN
     return franjas
@@ -629,10 +630,10 @@ def agrupar_por_pista(franjas: list[dict]) -> list[dict]:
         }
         # Solo los clubes de duración variable (ver MatchpointClient) traen
         # este dato calculado a partir de las reservas reales.
-        if any("duracion_libre_min" in f for f in lista):
+        if any("duraciones_posibles" in f for f in lista):
             pista_dict["duraciones"] = {
-                normalizar_hora(f["hora_inicio"]): f["duracion_libre_min"]
-                for f in lista if f.get("libre") and f.get("duracion_libre_min") is not None
+                normalizar_hora(f["hora_inicio"]): f["duraciones_posibles"]
+                for f in lista if f.get("libre") and f.get("duraciones_posibles")
             }
         pistas.append(pista_dict)
     return pistas

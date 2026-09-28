@@ -600,6 +600,10 @@
       return `${mins} min`;
     }
 
+    function formatoDuraciones(mins_lista) {
+      return mins_lista.map(formatoDuracion).join(' o ');
+    }
+
     list.innerHTML = clubs.map(c => `
       <li class="row club-group">
         <div class="club-group-header">
@@ -633,8 +637,8 @@
                 ${p.slotsFiltrados.map(s => {
                   const ocupada = p.ocupadas.includes(s);
                   if (ocupada) return `<span class="slot taken">${s}</span>`;
-                  const duracion = p.duraciones ? p.duraciones[s] : null;
-                  const etiqueta = duracion ? `${s} · ${formatoDuracion(duracion)}` : s;
+                  const duraciones = p.duraciones ? p.duraciones[s] : null;
+                  const etiqueta = duraciones ? `${s} · ${formatoDuraciones(duraciones)}` : s;
                   return `<a class="slot" href="${c.url}" target="_blank" rel="noopener" title="Reservar en ${c.club}">${etiqueta}</a>`;
                 }).join('')}
               </div>
