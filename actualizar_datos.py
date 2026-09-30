@@ -524,7 +524,7 @@ def sietepadel_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
                 "_orden": ini_min,
             })
 
-    franjas.sort(key=lambda f: (f["pista"], f["_orden"]))
+    franjas.sort(key=lambda f: (_numero_pista(f["pista"]), f["pista"], f["_orden"]))
     for f in franjas:
         del f["_orden"]
     return franjas
@@ -704,6 +704,16 @@ def normalizar_hora(h: str) -> str:
     return f"{int(partes[0]):02d}:{partes[1]}"
 
 
+_RE_NUM_PISTA = re.compile(r"(\d+)")
+
+
+def _numero_pista(nombre: str) -> float:
+    """Para ordenar «Pista 2» antes que «Pista 10» (si se ordenara como
+    texto, «10» iría antes que «2» porque el carácter '1' es menor que '2')."""
+    m = _RE_NUM_PISTA.search(nombre)
+    return int(m.group(1)) if m else float("inf")
+
+
 def agrupar_por_pista(franjas: list[dict]) -> list[dict]:
     por_pista: dict[str, list[dict]] = {}
     for f in franjas:
@@ -732,6 +742,7 @@ def agrupar_por_pista(franjas: list[dict]) -> list[dict]:
                 for f in lista if f.get("libre") and f.get("duraciones_posibles")
             }
         pistas.append(pista_dict)
+    pistas.sort(key=lambda p: (_numero_pista(p["pista"]), p["pista"]))
     return pistas
 
 
