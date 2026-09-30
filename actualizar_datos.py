@@ -217,7 +217,7 @@ SEDAVI_BASE_URL = "https://www.padelsedavi.com/partidas/padel"
 SEDAVI_TIPO_PISTAS = "Cubierta"
 
 SEDAVI_CLASES_BASE = {"partida", "partida-deporte-padel"}
-SEDAVI_CLASES_OCUPADA = {"partida-reservada", "partida-participante-libre", "partida-reserva"}
+SEDAVI_CLASES_OCUPADA = {"partida-reservada", "partida-participante-libre", "partida-reserva", "partida-abierta"}
 
 # Clases de estado que el scraper no conoce. Se tratan como «ocupada» por
 # seguridad, y se avisa una sola vez al final de la ejecución.
