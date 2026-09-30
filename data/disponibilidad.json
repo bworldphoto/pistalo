@@ -1,14 +1,7 @@
 {
   "actualizado_en": "2026-09-30",
-  "ultima_ejecucion_utc": "2026-09-30T14:04:20+00:00",
-  "errores": [
-    {
-      "club": "Padel Sedaví",
-      "fecha": "2026-09-30",
-      "tipo": "datos_incompletos",
-      "mensaje": "La web usa clases de estado que el scraper no conoce: partida-abierta. Esas franjas se han marcado como «ocupadas» por seguridad. Revisa qué significan (por ejemplo, un tipo de reserva nuevo)."
-    }
-  ],
+  "ultima_ejecucion_utc": "2026-09-30T14:08:08+00:00",
+  "errores": [],
   "por_fecha": {
     "2026-09-30": [
       {
