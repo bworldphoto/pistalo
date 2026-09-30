@@ -550,10 +550,35 @@
     renderReal(fechaSeleccionada, tramo, tipoPista);
   }
 
-  function filtrarPistas(pistas, tramo, tipoPista) {
+  function minutosDesdeHHMM(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function esFechaHoy(fechaStr) {
+    const hoy = new Date();
+    const hoyStr = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+    return fechaStr === hoyStr;
+  }
+
+  function filtrarPistas(pistas, tramo, tipoPista, fecha) {
+    const esHoy = esFechaHoy(fecha);
+    const ahora = new Date();
+    const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
     return pistas
       .filter(p => tipoPista === 'todas' || p.tipo === tipoPista)
-      .map(p => ({ ...p, slotsFiltrados: p.slots.filter(s => TRAMOS[tramo](parseInt(s.split(':')[0]))) }))
+      .map(p => ({
+        ...p,
+        // Ya solo quedan aquí las franjas libres, dentro del tramo elegido,
+        // y (si es hoy) que todavía no hayan pasado: no tiene sentido
+        // enseñar como reservable algo que ya ha ocurrido.
+        slotsFiltrados: p.slots.filter(s =>
+          TRAMOS[tramo](parseInt(s.split(':')[0])) &&
+          !p.ocupadas.includes(s) &&
+          (!esHoy || minutosDesdeHHMM(s) > minutosAhora)
+        ),
+      }))
+      // Una pista sin ninguna franja libre no aporta nada: no se muestra.
       .filter(p => p.slotsFiltrados.length > 0);
   }
 
@@ -577,7 +602,7 @@
       .map(c => ({
         ...c,
         zona: CLUBES_INFO[c.club]?.ubicacion || c.zona,
-        pistasFiltradas: filtrarPistas(c.pistas, tramo, tipoPista),
+        pistasFiltradas: filtrarPistas(c.pistas, tramo, tipoPista, fecha),
       }))
       .filter(c => c.pistasFiltradas.length > 0)
       .sort((a, b) => a.club.localeCompare(b.club));
@@ -635,8 +660,6 @@
               </div>
               <div class="slots">
                 ${p.slotsFiltrados.map(s => {
-                  const ocupada = p.ocupadas.includes(s);
-                  if (ocupada) return `<span class="slot taken">${s}</span>`;
                   const duraciones = p.duraciones ? p.duraciones[s] : null;
                   const etiqueta = duraciones ? `${s} · ${formatoDuraciones(duraciones)}` : s;
                   return `<a class="slot" href="${c.url}" target="_blank" rel="noopener" title="Reservar en ${c.club}">${etiqueta}</a>`;

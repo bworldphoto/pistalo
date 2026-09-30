@@ -491,7 +491,15 @@ def matchpoint_combinado_parsear(
     franjas = []
     for i, col in enumerate(d.get("Columnas") or [], 1):
         nombre = _normalizar_nombre_pista((col.get("TextoPrincipal") or "").strip()) or f"Pista {i}"
+        # Estas dos llevan el nombre de un patrocinador en la web, pero son
+        # numéricamente la 1 y la 2 del club (a continuación viene "Pista 3").
+        ONEPADEL_ALIAS = {"p. lacoste": "Pista 1", "p. tecnifibre": "Pista 2"}
+        nombre = ONEPADEL_ALIAS.get(nombre.lower(), nombre)
         tipo_pista = "Exterior" if "outdoor" in nombre.lower() else tipo_pistas
+        if tipo_pista == "Exterior":
+            # El distintivo de "Exterior" ya lo lleva el campo "tipo"; no hace
+            # falta repetirlo también en el nombre de la pista.
+            nombre = re.sub(r"\s*outdoor\s*$", "", nombre, flags=re.IGNORECASE).strip()
 
         cubiertos: list[tuple[int, int, bool]] = []  # (inicio, fin, es_franja_fija)
 
@@ -880,16 +888,36 @@ def agrupar_por_pista(franjas: list[dict]) -> list[dict]:
             "slots": slots,
             "ocupadas": ocupadas,
         }
-        # Solo los clubes de duración variable (ver MatchpointClient) traen
-        # este dato calculado a partir de las reservas reales.
-        if any("duraciones_posibles" in f for f in lista):
-            pista_dict["duraciones"] = {
-                normalizar_hora(f["hora_inicio"]): f["duraciones_posibles"]
-                for f in lista if f.get("libre") and f.get("duraciones_posibles")
-            }
+        duraciones = {}
+        for f in lista:
+            dur = _duracion_franja_min(f)
+            if dur:
+                duraciones[normalizar_hora(f["hora_inicio"])] = dur
+        if duraciones:
+            pista_dict["duraciones"] = duraciones
         pistas.append(pista_dict)
     pistas.sort(key=lambda p: (_numero_pista(p["pista"]), p["pista"]))
     return pistas
+
+
+def _duracion_franja_min(f: dict) -> list[int] | None:
+    """Duración (en minutos) de una franja libre, como lista de opciones.
+    Los clubes de "hueco variable" (ver MatchpointClient) ya traen esto
+    calculado a partir de las reservas reales («duraciones_posibles»); para
+    el resto (franjas de duración fija), se calcula de la diferencia entre
+    hora_inicio y hora_fin."""
+    if not f.get("libre"):
+        return None
+    if "duraciones_posibles" in f:
+        return f["duraciones_posibles"] or None
+    ini = _mp_minutos(f.get("hora_inicio"))
+    fin = _mp_minutos(f.get("hora_fin"))
+    if ini is None or fin is None:
+        return None
+    if fin <= ini:
+        fin += 24 * 60  # la franja cruza la medianoche (p. ej. 23:00 -> 00:30)
+    return [fin - ini]
+
 
 
 
