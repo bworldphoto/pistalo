@@ -392,6 +392,16 @@ SIETEPADEL_CLUB = "7Padel Valencia"
 SIETEPADEL_ZONA = "Valencia"
 SIETEPADEL_TIPO_PISTAS = "Cubierta"
 
+# ----------------------------------------------------------------------
+# ONE PÁDEL VALENCIA (plataforma Matchpoint, fijas de 90 min + huecos
+# variables combinados en las mismas pistas — ver matchpoint_combinado_parsear)
+# ----------------------------------------------------------------------
+ONEPADEL_BASE_URL = "https://onepadelvalencia.com"
+ONEPADEL_ID_CUADRO = "4"  # "Pádel Dobles"
+ONEPADEL_CLUB = "One Pádel Valencia"
+ONEPADEL_ZONA = "Paterna"
+ONEPADEL_TIPO_PISTAS = "Cubierta"  # las "OUTDOOR" se detectan solas por el nombre
+
 MATCHPOINT_PASO_MIN = 30
 # Duración mínima de una reserva (la más corta que hemos visto en los datos es
 # de 60 min). Si el club solo permitiera reservas de 90 min, subir este valor.
@@ -457,6 +467,111 @@ def _matchpoint_ventana_reservas(d: dict, inicio_dia: datetime) -> tuple[int | N
 def _normalizar_nombre_pista(nombre: str) -> str:
     """Colapsa espacios dobles/sobrantes, p. ej. la propia web a veces manda «Pista  9»."""
     return " ".join(nombre.split())
+
+
+def matchpoint_combinado_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
+    """
+    Para clubes donde CADA PISTA combina franjas fijas de 90 min (como 7Padel)
+    con huecos de duración variable, sin plantilla (como Beteró) — ej. One Pádel
+    Valencia. La propia respuesta lo anuncia con "CombinaHorariosFijosYLibres":
+    true, pero el dato de verdad es más simple: cualquier tramo del horario del
+    centro que NO aparezca ni en "HorariosFijos" ni en "Ocupaciones" es zona
+    libre, y ahí se puede reservar 60 o 90 min empezando cada 30 min (igual que
+    en Beteró, limitado por lo que venga antes: cierre, fin de la ventana de
+    reservas, o el siguiente tramo ya cubierto por fijo/ocupación).
+    """
+    _matchpoint_dia_valido(d, fecha)
+    inicio_dia = datetime(fecha.year, fecha.month, fecha.day)
+    ap_min, ci_min = _matchpoint_apertura_cierre(d, inicio_dia)
+    ini_res_min, fin_res_min = _matchpoint_ventana_reservas(d, inicio_dia)
+
+    franjas = []
+    for i, col in enumerate(d.get("Columnas") or [], 1):
+        nombre = _normalizar_nombre_pista((col.get("TextoPrincipal") or "").strip()) or f"Pista {i}"
+        tipo_pista = "Exterior" if "outdoor" in nombre.lower() else tipo_pistas
+
+        cubiertos: list[tuple[int, int]] = []  # tramos ya explicados por fijo u ocupación
+
+        for h in col.get("HorariosFijos") or []:
+            ini_min = _mp_minutos(h.get("StrHoraInicio"))
+            fin_min = _mp_minutos(h.get("StrHoraFin"))
+            if fin_min == 0 and ini_min:
+                fin_min = 24 * 60
+            if ini_min is None or fin_min is None or fin_min <= ini_min:
+                raise EstructuraCambiada(
+                    f"Un horario fijo de «{nombre}» no tiene horas legibles "
+                    f"(inicio={h.get('StrHoraInicio')!r}, fin={h.get('StrHoraFin')!r}). "
+                    "Probablemente la web ha cambiado su formato."
+                )
+            cubiertos.append((ini_min, fin_min))
+            libre = bool(h.get("Clickable"))
+            if libre and ini_res_min is not None and ini_min < ini_res_min:
+                libre = False
+            if libre and fin_res_min is not None and ini_min >= fin_res_min:
+                libre = False
+            franjas.append({
+                "pista": nombre, "tipo": tipo_pista,
+                "hora_inicio": h.get("StrHoraInicio"), "hora_fin": h.get("StrHoraFin"),
+                "libre": libre, "_orden": ini_min,
+            })
+
+        for o in col.get("Ocupaciones") or []:
+            ini_min = _mp_minutos(o.get("StrHoraInicio"))
+            fin_min = _mp_minutos(o.get("StrHoraFin"))
+            if fin_min == 0 and ini_min:
+                fin_min = 24 * 60
+            if ini_min is None or fin_min is None or fin_min <= ini_min:
+                raise EstructuraCambiada(
+                    f"Una ocupación de «{nombre}» no tiene horas legibles "
+                    f"(inicio={o.get('StrHoraInicio')!r}, fin={o.get('StrHoraFin')!r}). "
+                    "Probablemente la web ha cambiado su formato."
+                )
+            cubiertos.append((ini_min, fin_min))
+            franjas.append({
+                "pista": nombre, "tipo": tipo_pista,
+                "hora_inicio": o.get("StrHoraInicio"), "hora_fin": o.get("StrHoraFin"),
+                "libre": False, "_orden": ini_min,
+            })
+
+        cubiertos.sort()
+
+        # Recorre el horario del centro en pasos de 30 min; cuando cae dentro de
+        # un tramo ya cubierto (fijo u ocupación), salta directamente a su fin.
+        t = ap_min
+        while t < ci_min:
+            en_cubierto = next((fin for ini, fin in cubiertos if ini <= t < fin), None)
+            if en_cubierto is not None:
+                t = en_cubierto
+                continue
+
+            limite = ci_min
+            if fin_res_min is not None:
+                limite = min(limite, fin_res_min)
+            siguientes_inicios = [ini for ini, _ in cubiertos if ini > t]
+            if siguientes_inicios:
+                limite = min(limite, min(siguientes_inicios))
+
+            if t + MATCHPOINT_DURACION_MIN > limite:
+                # Ni 60 min caben antes del siguiente tramo cubierto: no hay
+                # nada que reservar aquí y no merece la pena generar franja.
+                t += MATCHPOINT_PASO_MIN
+                continue
+
+            libre = True
+            if ini_res_min is not None and t < ini_res_min:
+                libre = False
+            duraciones_posibles = ([60, 90] if limite - t >= 90 else [60]) if libre else None
+            franjas.append({
+                "pista": nombre, "tipo": tipo_pista,
+                "hora_inicio": _mp_hhmm(t), "hora_fin": _mp_hhmm(t + MATCHPOINT_DURACION_MIN),
+                "libre": libre, "duraciones_posibles": duraciones_posibles, "_orden": t,
+            })
+            t += MATCHPOINT_PASO_MIN
+
+    franjas.sort(key=lambda f: (_numero_pista(f["pista"]), f["pista"], f["_orden"]))
+    for f in franjas:
+        del f["_orden"]
+    return franjas
 
 
 def sietepadel_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
@@ -530,8 +645,8 @@ def sietepadel_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
     return franjas
 
 
-def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
-    """Convierte la respuesta de ObtenerCuadro en franjas (hora de inicio + libre/ocupada)."""
+def _matchpoint_dia_valido(d: dict, fecha: date) -> None:
+    """Comprobaciones comunes a los tres analizadores de Matchpoint."""
     if _mp_fecha(d.get("StrFecha")) != fecha:
         raise DiaNoDisponible(
             f"La web ha devuelto datos del {d.get('StrFecha')!r} en vez del {fecha.isoformat()}."
@@ -539,8 +654,9 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
     if d.get("FechaInhabil"):
         raise DiaNoDisponible(f"El {fecha.isoformat()} figura como día inhábil (centro cerrado).")
 
-    inicio_dia = datetime(fecha.year, fecha.month, fecha.day)
 
+def _matchpoint_apertura_cierre(d: dict, inicio_dia: datetime) -> tuple[int, int]:
+    """Minutos de apertura y cierre del centro, relativos a la medianoche del día consultado."""
     def a_minutos(dt: datetime) -> int:
         return int((dt - inicio_dia).total_seconds() // 60)
 
@@ -556,12 +672,20 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
             f"(apertura={d.get('StrHoraAperturaCentro')!r}, cierre={d.get('StrHoraCierreCentro')!r}). "
             "Probablemente la web ha cambiado su formato. No se han publicado datos de este día."
         )
+    return ap_min, ci_min
 
+
+def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
+    """Convierte la respuesta de ObtenerCuadro en franjas (hora de inicio + libre/ocupada)."""
+    _matchpoint_dia_valido(d, fecha)
+    inicio_dia = datetime(fecha.year, fecha.month, fecha.day)
+    ap_min, ci_min = _matchpoint_apertura_cierre(d, inicio_dia)
     ini_res_min, fin_res_min = _matchpoint_ventana_reservas(d, inicio_dia)
 
     franjas = []
     for i, col in enumerate(d.get("Columnas") or [], 1):
         nombre = (col.get("TextoPrincipal") or "").strip() or f"Pista {i}"
+
 
         ocupadas = []
         for oc in col.get("Ocupaciones") or []:
@@ -756,6 +880,7 @@ PISTAS_MINIMAS_ESPERADAS = {
     "Padel Sedaví": 5,               # en el HTML se ven al menos 8 columnas de pista
     FHCV_CLUB: 4,                    # el club tiene 5 pistas en total (confirmado 28-09-2026)
     SIETEPADEL_CLUB: 8,              # el club tiene 11 pistas en total (confirmado 28-09-2026)
+    ONEPADEL_CLUB: 12,                # el club tiene 15 pistas en total (confirmado 01-10-2026)
 }
 
 
@@ -864,6 +989,10 @@ def generar_datos() -> tuple[dict, list]:
         SIETEPADEL_BASE_URL, SIETEPADEL_ID_CUADRO, SIETEPADEL_TIPO_PISTAS,
         parser=sietepadel_parsear,
     )
+    onepadel = MatchpointClient(
+        ONEPADEL_BASE_URL, ONEPADEL_ID_CUADRO, ONEPADEL_TIPO_PISTAS,
+        parser=matchpoint_combinado_parsear,
+    )
     # Clubes que en algún día han dado (None, None): ese día en
     # concreto no está disponible por un motivo YA EXPLICADO (ver
     # docstring de procesar_club), así que no cuentan como "sospechosos".
@@ -943,6 +1072,20 @@ def generar_datos() -> tuple[dict, list]:
         if error_sietepadel:
             print(f"[AVISO] {error_sietepadel['club']} ({fecha_str}): {error_sietepadel['mensaje']}")
             errores.append(error_sietepadel)
+
+        time.sleep(3)
+
+        club_onepadel, error_onepadel = procesar_club(
+            ONEPADEL_CLUB, ONEPADEL_ZONA, f"{ONEPADEL_BASE_URL}/Booking/Grid.aspx",
+            onepadel.snapshot, fecha,
+        )
+        if club_onepadel is None and error_onepadel is None:
+            clubs_con_ausencia_explicada.add(ONEPADEL_CLUB)
+        if club_onepadel:
+            clubs_del_dia.append(club_onepadel)
+        if error_onepadel:
+            print(f"[AVISO] {error_onepadel['club']} ({fecha_str}): {error_onepadel['mensaje']}")
+            errores.append(error_onepadel)
 
         resultado_por_fecha[fecha_str] = clubs_del_dia
         time.sleep(3)
