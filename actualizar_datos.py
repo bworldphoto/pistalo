@@ -888,35 +888,18 @@ def agrupar_por_pista(franjas: list[dict]) -> list[dict]:
             "slots": slots,
             "ocupadas": ocupadas,
         }
-        duraciones = {}
-        for f in lista:
-            dur = _duracion_franja_min(f)
-            if dur:
-                duraciones[normalizar_hora(f["hora_inicio"])] = dur
-        if duraciones:
-            pista_dict["duraciones"] = duraciones
+        # Solo los clubes de duración variable (ver MatchpointClient) traen
+        # este dato calculado a partir de las reservas reales. En el resto
+        # (franjas siempre fijas de 90 min) no aporta nada nuevo, así que no
+        # se incluye.
+        if any("duraciones_posibles" in f for f in lista):
+            pista_dict["duraciones"] = {
+                normalizar_hora(f["hora_inicio"]): f["duraciones_posibles"]
+                for f in lista if f.get("libre") and f.get("duraciones_posibles")
+            }
         pistas.append(pista_dict)
     pistas.sort(key=lambda p: (_numero_pista(p["pista"]), p["pista"]))
     return pistas
-
-
-def _duracion_franja_min(f: dict) -> list[int] | None:
-    """Duración (en minutos) de una franja libre, como lista de opciones.
-    Los clubes de "hueco variable" (ver MatchpointClient) ya traen esto
-    calculado a partir de las reservas reales («duraciones_posibles»); para
-    el resto (franjas de duración fija), se calcula de la diferencia entre
-    hora_inicio y hora_fin."""
-    if not f.get("libre"):
-        return None
-    if "duraciones_posibles" in f:
-        return f["duraciones_posibles"] or None
-    ini = _mp_minutos(f.get("hora_inicio"))
-    fin = _mp_minutos(f.get("hora_fin"))
-    if ini is None or fin is None:
-        return None
-    if fin <= ini:
-        fin += 24 * 60  # la franja cruza la medianoche (p. ej. 23:00 -> 00:30)
-    return [fin - ini]
 
 
 
