@@ -469,7 +469,10 @@ def _normalizar_nombre_pista(nombre: str) -> str:
     return " ".join(nombre.split())
 
 
-def matchpoint_combinado_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
+def matchpoint_combinado_parsear(
+    d: dict, fecha: date, tipo_pistas: str,
+    duraciones_validas: tuple[int, ...] = (60, 90),
+) -> list[dict]:
     """
     Para clubes donde CADA PISTA combina franjas fijas de 90 min (como 7Padel)
     con huecos de duración variable, sin plantilla (como Beteró) — ej. One Pádel
@@ -490,7 +493,7 @@ def matchpoint_combinado_parsear(d: dict, fecha: date, tipo_pistas: str) -> list
         nombre = _normalizar_nombre_pista((col.get("TextoPrincipal") or "").strip()) or f"Pista {i}"
         tipo_pista = "Exterior" if "outdoor" in nombre.lower() else tipo_pistas
 
-        cubiertos: list[tuple[int, int]] = []  # tramos ya explicados por fijo u ocupación
+        cubiertos: list[tuple[int, int, bool]] = []  # (inicio, fin, es_franja_fija)
 
         for h in col.get("HorariosFijos") or []:
             ini_min = _mp_minutos(h.get("StrHoraInicio"))
@@ -503,7 +506,7 @@ def matchpoint_combinado_parsear(d: dict, fecha: date, tipo_pistas: str) -> list
                     f"(inicio={h.get('StrHoraInicio')!r}, fin={h.get('StrHoraFin')!r}). "
                     "Probablemente la web ha cambiado su formato."
                 )
-            cubiertos.append((ini_min, fin_min))
+            cubiertos.append((ini_min, fin_min, True))
             libre = bool(h.get("Clickable"))
             if libre and ini_res_min is not None and ini_min < ini_res_min:
                 libre = False
@@ -526,7 +529,7 @@ def matchpoint_combinado_parsear(d: dict, fecha: date, tipo_pistas: str) -> list
                     f"(inicio={o.get('StrHoraInicio')!r}, fin={o.get('StrHoraFin')!r}). "
                     "Probablemente la web ha cambiado su formato."
                 )
-            cubiertos.append((ini_min, fin_min))
+            cubiertos.append((ini_min, fin_min, False))
             franjas.append({
                 "pista": nombre, "tipo": tipo_pista,
                 "hora_inicio": o.get("StrHoraInicio"), "hora_fin": o.get("StrHoraFin"),
@@ -534,33 +537,52 @@ def matchpoint_combinado_parsear(d: dict, fecha: date, tipo_pistas: str) -> list
             })
 
         cubiertos.sort()
+        fijo_termina_en = {fin for ini, fin, es_fijo in cubiertos if es_fijo}
+        fijo_empieza_en = {ini for ini, fin, es_fijo in cubiertos if es_fijo}
 
         # Recorre el horario del centro en pasos de 30 min; cuando cae dentro de
         # un tramo ya cubierto (fijo u ocupación), salta directamente a su fin.
         t = ap_min
         while t < ci_min:
-            en_cubierto = next((fin for ini, fin in cubiertos if ini <= t < fin), None)
+            en_cubierto = next((fin for ini, fin, _ in cubiertos if ini <= t < fin), None)
             if en_cubierto is not None:
                 t = en_cubierto
                 continue
 
             limite = ci_min
-            if fin_res_min is not None:
-                limite = min(limite, fin_res_min)
-            siguientes_inicios = [ini for ini, _ in cubiertos if ini > t]
-            if siguientes_inicios:
-                limite = min(limite, min(siguientes_inicios))
+            limite_es_fijo = False  # ¿el límite viene de que empieza una franja fija?
+            if fin_res_min is not None and fin_res_min < limite:
+                limite, limite_es_fijo = fin_res_min, False
+            siguientes = [(ini, es_fijo) for ini, _, es_fijo in cubiertos if ini > t]
+            if siguientes:
+                ini_siguiente, es_fijo_siguiente = min(siguientes, key=lambda x: x[0])
+                if ini_siguiente < limite:
+                    limite, limite_es_fijo = ini_siguiente, es_fijo_siguiente
 
-            if t + MATCHPOINT_DURACION_MIN > limite:
+            hueco = limite - t
+            if hueco < MATCHPOINT_DURACION_MIN:
                 # Ni 60 min caben antes del siguiente tramo cubierto: no hay
                 # nada que reservar aquí y no merece la pena generar franja.
                 t += MATCHPOINT_PASO_MIN
                 continue
 
+            if hueco < 90:
+                # Hueco ajustado (solo caben 60, no 90): por lo que hemos
+                # comprobado con datos reales, la web SOLO ofrece este caso
+                # cuando el hueco toca directamente con una franja fija (justo
+                # después de que termine una, o justo antes de que empiece
+                # otra). Si el límite es el cierre del centro, el fin de la
+                # ventana de reservas, o una ocupación normal, no lo ofrece
+                # aunque el hueco encaje de sobra en el papel.
+                pegado_a_fijo = (t in fijo_termina_en) or limite_es_fijo
+                if not pegado_a_fijo:
+                    t += MATCHPOINT_PASO_MIN
+                    continue
+
             libre = True
             if ini_res_min is not None and t < ini_res_min:
                 libre = False
-            duraciones_posibles = ([60, 90] if limite - t >= 90 else [60]) if libre else None
+            duraciones_posibles = ([60, 90] if hueco >= 90 else [60]) if libre else None
             franjas.append({
                 "pista": nombre, "tipo": tipo_pista,
                 "hora_inicio": _mp_hhmm(t), "hora_fin": _mp_hhmm(t + MATCHPOINT_DURACION_MIN),
