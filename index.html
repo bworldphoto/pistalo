@@ -625,6 +625,9 @@
     }
 
     function formatoDuraciones(mins_lista) {
+      if (mins_lista.length === 2) {
+        return `${mins_lista[0]}-${mins_lista[1]}min`;
+      }
       return mins_lista.map(formatoDuracion).join(' o ');
     }
 

@@ -523,7 +523,9 @@ def matchpoint_combinado_parsear(
             franjas.append({
                 "pista": nombre, "tipo": tipo_pista,
                 "hora_inicio": h.get("StrHoraInicio"), "hora_fin": h.get("StrHoraFin"),
-                "libre": libre, "_orden": ini_min,
+                "libre": libre,
+                "duraciones_posibles": [fin_min - ini_min] if libre else None,
+                "_orden": ini_min,
             })
 
         for o in col.get("Ocupaciones") or []:
