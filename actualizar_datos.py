@@ -402,6 +402,15 @@ ONEPADEL_CLUB = "One Pádel Valencia"
 ONEPADEL_ZONA = "Paterna"
 ONEPADEL_TIPO_PISTAS = "Cubierta"  # las "OUTDOOR" se detectan solas por el nombre
 
+# ----------------------------------------------------------------------
+# ORIGEN PÁDEL CLUB (plataforma Matchpoint, mismo analizador combinado)
+# ----------------------------------------------------------------------
+ORIGENPADEL_BASE_URL = "https://reservas.origenpadelclub.es"
+ORIGENPADEL_ID_CUADRO = "4"  # "Pádel"
+ORIGENPADEL_CLUB = "Origen Pádel Club"
+ORIGENPADEL_ZONA = "Paterna"
+ORIGENPADEL_TIPO_PISTAS = "Cubierta"  # la pista "EXTERIOR" se detecta sola por el nombre
+
 MATCHPOINT_PASO_MIN = 30
 # Duración mínima de una reserva (la más corta que hemos visto en los datos es
 # de 60 min). Si el club solo permitiera reservas de 90 min, subir este valor.
@@ -495,11 +504,14 @@ def matchpoint_combinado_parsear(
         # numéricamente la 1 y la 2 del club (a continuación viene "Pista 3").
         ONEPADEL_ALIAS = {"p. lacoste": "Pista 1", "p. tecnifibre": "Pista 2"}
         nombre = ONEPADEL_ALIAS.get(nombre.lower(), nombre)
-        tipo_pista = "Exterior" if "outdoor" in nombre.lower() else tipo_pistas
+        tipo_pista = "Exterior" if re.search(r"outdoor|exterior", nombre, re.IGNORECASE) else tipo_pistas
         if tipo_pista == "Exterior":
             # El distintivo de "Exterior" ya lo lleva el campo "tipo"; no hace
             # falta repetirlo también en el nombre de la pista.
-            nombre = re.sub(r"\s*outdoor\s*$", "", nombre, flags=re.IGNORECASE).strip()
+            nombre = re.sub(r"\s*(outdoor|exterior)\s*$", "", nombre, flags=re.IGNORECASE).strip()
+        # Si el nombre ya es "Pista N", cualquier texto extra después (el
+        # patrocinador de turno: "Pista 1 Martico", "Pista 2 JD"...) sobra.
+        nombre = re.sub(r"^(Pista\s+\d+)\b.*$", r"\1", nombre, flags=re.IGNORECASE)
 
         cubiertos: list[tuple[int, int, bool]] = []  # (inicio, fin, es_franja_fija)
 
@@ -548,7 +560,7 @@ def matchpoint_combinado_parsear(
 
         cubiertos.sort()
         fijo_termina_en = {fin for ini, fin, es_fijo in cubiertos if es_fijo}
-        fijo_empieza_en = {ini for ini, fin, es_fijo in cubiertos if es_fijo}
+        tiene_fijos = any(es_fijo for _, _, es_fijo in cubiertos)
 
         # Recorre el horario del centro en pasos de 30 min; cuando cae dentro de
         # un tramo ya cubierto (fijo u ocupación), salta directamente a su fin.
@@ -576,14 +588,16 @@ def matchpoint_combinado_parsear(
                 t += MATCHPOINT_PASO_MIN
                 continue
 
-            if hueco < 90:
+            if hueco < 90 and tiene_fijos:
                 # Hueco ajustado (solo caben 60, no 90): por lo que hemos
-                # comprobado con datos reales, la web SOLO ofrece este caso
-                # cuando el hueco toca directamente con una franja fija (justo
+                # comprobado con datos reales, en pistas que SÍ tienen alguna
+                # franja fija, la web solo ofrece este caso cuando el hueco
+                # toca directamente con una de esas franjas fijas (justo
                 # después de que termine una, o justo antes de que empiece
-                # otra). Si el límite es el cierre del centro, el fin de la
-                # ventana de reservas, o una ocupación normal, no lo ofrece
-                # aunque el hueco encaje de sobra en el papel.
+                # otra). En pistas que no tienen ninguna franja fija (todo el
+                # día es zona libre, como la pista exterior de este club o
+                # como Beteró) esta restricción no aplica: ahí un hueco
+                # ajustado de 60 min sí se puede reservar sin más.
                 pegado_a_fijo = (t in fijo_termina_en) or limite_es_fijo
                 if not pegado_a_fijo:
                     t += MATCHPOINT_PASO_MIN
@@ -916,6 +930,7 @@ PISTAS_MINIMAS_ESPERADAS = {
     FHCV_CLUB: 4,                    # el club tiene 5 pistas en total (confirmado 28-09-2026)
     SIETEPADEL_CLUB: 8,              # el club tiene 11 pistas en total (confirmado 28-09-2026)
     ONEPADEL_CLUB: 12,                # el club tiene 15 pistas en total (confirmado 01-10-2026)
+    ORIGENPADEL_CLUB: 4,              # el club tiene 5 pistas en total (confirmado 04-10-2026)
 }
 
 
@@ -1028,6 +1043,10 @@ def generar_datos() -> tuple[dict, list]:
         ONEPADEL_BASE_URL, ONEPADEL_ID_CUADRO, ONEPADEL_TIPO_PISTAS,
         parser=matchpoint_combinado_parsear,
     )
+    origenpadel = MatchpointClient(
+        ORIGENPADEL_BASE_URL, ORIGENPADEL_ID_CUADRO, ORIGENPADEL_TIPO_PISTAS,
+        parser=matchpoint_combinado_parsear,
+    )
     # Clubes que en algún día han dado (None, None): ese día en
     # concreto no está disponible por un motivo YA EXPLICADO (ver
     # docstring de procesar_club), así que no cuentan como "sospechosos".
@@ -1121,6 +1140,20 @@ def generar_datos() -> tuple[dict, list]:
         if error_onepadel:
             print(f"[AVISO] {error_onepadel['club']} ({fecha_str}): {error_onepadel['mensaje']}")
             errores.append(error_onepadel)
+
+        time.sleep(3)
+
+        club_origenpadel, error_origenpadel = procesar_club(
+            ORIGENPADEL_CLUB, ORIGENPADEL_ZONA, f"{ORIGENPADEL_BASE_URL}/Booking/Grid.aspx",
+            origenpadel.snapshot, fecha,
+        )
+        if club_origenpadel is None and error_origenpadel is None:
+            clubs_con_ausencia_explicada.add(ORIGENPADEL_CLUB)
+        if club_origenpadel:
+            clubs_del_dia.append(club_origenpadel)
+        if error_origenpadel:
+            print(f"[AVISO] {error_origenpadel['club']} ({fecha_str}): {error_origenpadel['mensaje']}")
+            errores.append(error_origenpadel)
 
         resultado_por_fecha[fecha_str] = clubs_del_dia
         time.sleep(3)
