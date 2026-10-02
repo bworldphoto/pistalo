@@ -561,6 +561,12 @@ def matchpoint_combinado_parsear(
         cubiertos.sort()
         fijo_termina_en = {fin for ini, fin, es_fijo in cubiertos if es_fijo}
         tiene_fijos = any(es_fijo for _, _, es_fijo in cubiertos)
+        # Si la pista tiene alguna franja fija, el propio club dice si el
+        # resto del día (lo que no está en HorariosFijos ni en Ocupaciones)
+        # se puede reservar libremente o no: "CombinaHorariosFijosYLibres".
+        # Si no tiene ninguna fija, es zona libre de principio a fin (Beteró),
+        # así que esto no aplica.
+        huecos_reservables = (not tiene_fijos) or bool(col.get("CombinaHorariosFijosYLibres"))
 
         # Recorre el horario del centro en pasos de 30 min; cuando cae dentro de
         # un tramo ya cubierto (fijo u ocupación), salta directamente a su fin.
@@ -569,6 +575,12 @@ def matchpoint_combinado_parsear(
             en_cubierto = next((fin for ini, fin, _ in cubiertos if ini <= t < fin), None)
             if en_cubierto is not None:
                 t = en_cubierto
+                continue
+
+            if not huecos_reservables:
+                # Esta pista no vende nada fuera de sus franjas fijas: no se
+                # genera ninguna franja para este hueco, ni libre ni ocupada.
+                t += MATCHPOINT_PASO_MIN
                 continue
 
             limite = ci_min
