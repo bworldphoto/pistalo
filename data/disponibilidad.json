@@ -1,6 +1,6 @@
 {
   "actualizado_en": "2026-10-02",
-  "ultima_ejecucion_utc": "2026-10-02T00:05:29+00:00",
+  "ultima_ejecucion_utc": "2026-10-02T01:07:05+00:00",
   "errores": [],
   "por_fecha": {
     "2026-10-02": [
@@ -442,7 +442,9 @@
               "20:30",
               "22:00"
             ],
-            "ocupadas": []
+            "ocupadas": [
+              "17:30"
+            ]
           }
         ]
       },
