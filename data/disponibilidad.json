@@ -1,6 +1,6 @@
 {
   "actualizado_en": "2026-10-13",
-  "ultima_ejecucion_utc": "2026-10-13T00:09:05+00:00",
+  "ultima_ejecucion_utc": "2026-10-13T01:14:36+00:00",
   "errores": [
     {
       "club": "Padel Sedaví",
@@ -13730,6 +13730,7 @@
             ],
             "ocupadas": [
               "08:00",
+              "11:00",
               "12:30",
               "14:00",
               "15:30",
