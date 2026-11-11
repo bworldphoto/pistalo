@@ -559,7 +559,12 @@ def matchpoint_combinado_parsear(
             })
 
         cubiertos.sort()
-        fijo_termina_en = {fin for ini, fin, es_fijo in cubiertos if es_fijo}
+        # Dónde termina CUALQUIER tramo cubierto (fijo u ocupación) — hace
+        # falta para la regla del "pegado a fijo" de más abajo: un hueco
+        # ajustado que termina justo en el cierre del centro solo se ofrece
+        # si empieza justo donde terminó algo, no si empieza más adelante
+        # dentro de ese mismo tramo libre.
+        cubierto_termina_en = {fin for ini, fin, _ in cubiertos}
         tiene_fijos = any(es_fijo for _, _, es_fijo in cubiertos)
         # Si la pista tiene alguna franja fija, el propio club dice si el
         # resto del día (lo que no está en HorariosFijos ni en Ocupaciones)
@@ -585,13 +590,14 @@ def matchpoint_combinado_parsear(
 
             limite = ci_min
             limite_es_fijo = False  # ¿el límite viene de que empieza una franja fija?
+            limite_es_cierre = True  # ¿el límite es el cierre del centro (o la ventana de reservas)?
             if fin_res_min is not None and fin_res_min < limite:
-                limite, limite_es_fijo = fin_res_min, False
+                limite, limite_es_fijo, limite_es_cierre = fin_res_min, False, False
             siguientes = [(ini, es_fijo) for ini, _, es_fijo in cubiertos if ini > t]
             if siguientes:
                 ini_siguiente, es_fijo_siguiente = min(siguientes, key=lambda x: x[0])
                 if ini_siguiente < limite:
-                    limite, limite_es_fijo = ini_siguiente, es_fijo_siguiente
+                    limite, limite_es_fijo, limite_es_cierre = ini_siguiente, es_fijo_siguiente, False
 
             hueco = limite - t
             if hueco < MATCHPOINT_DURACION_MIN:
@@ -603,14 +609,21 @@ def matchpoint_combinado_parsear(
             if hueco < 90 and tiene_fijos:
                 # Hueco ajustado (solo caben 60, no 90): por lo que hemos
                 # comprobado con datos reales, en pistas que SÍ tienen alguna
-                # franja fija, la web solo ofrece este caso cuando el hueco
-                # toca directamente con una de esas franjas fijas (justo
-                # después de que termine una, o justo antes de que empiece
-                # otra). En pistas que no tienen ninguna franja fija (todo el
-                # día es zona libre, como la pista exterior de este club o
-                # como Beteró) esta restricción no aplica: ahí un hueco
-                # ajustado de 60 min sí se puede reservar sin más.
-                pegado_a_fijo = (t in fijo_termina_en) or limite_es_fijo
+                # franja fija, la web solo ofrece este caso en dos
+                # situaciones:
+                #   a) lo que viene después es el INICIO de una franja fija, o
+                #   b) lo que viene después es el CIERRE del centro (o el fin
+                #      de la ventana de reservas) Y además el hueco empieza
+                #      justo donde terminó otro tramo cubierto (fijo u
+                #      ocupación) — si empezara más adelante, dentro de ese
+                #      mismo tramo libre, no se ofrece.
+                # Si lo que viene después es una OCUPACIÓN (no el cierre, no
+                # una fija), nunca se ofrece. En pistas sin ninguna franja
+                # fija (todo el día es zona libre, como la pista exterior de
+                # este club o como Beteró) esta restricción no aplica: ahí un
+                # hueco ajustado de 60 min sí se puede reservar sin más.
+                t_en_borde = t in cubierto_termina_en
+                pegado_a_fijo = limite_es_fijo or (t_en_borde and limite_es_cierre)
                 if not pegado_a_fijo:
                     t += MATCHPOINT_PASO_MIN
                     continue
