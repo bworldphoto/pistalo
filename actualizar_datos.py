@@ -559,12 +559,6 @@ def matchpoint_combinado_parsear(
             })
 
         cubiertos.sort()
-        # Dónde termina CUALQUIER tramo cubierto (fijo u ocupación) — hace
-        # falta para la regla del "pegado a fijo" de más abajo: un hueco
-        # ajustado que termina justo en el cierre del centro solo se ofrece
-        # si empieza justo donde terminó algo, no si empieza más adelante
-        # dentro de ese mismo tramo libre.
-        cubierto_termina_en = {fin for ini, fin, _ in cubiertos}
         tiene_fijos = any(es_fijo for _, _, es_fijo in cubiertos)
         # Si la pista tiene alguna franja fija, el propio club dice si el
         # resto del día (lo que no está en HorariosFijos ni en Ocupaciones)
@@ -573,71 +567,52 @@ def matchpoint_combinado_parsear(
         # así que esto no aplica.
         huecos_reservables = (not tiene_fijos) or bool(col.get("CombinaHorariosFijosYLibres"))
 
-        # Recorre el horario del centro en pasos de 30 min; cuando cae dentro de
-        # un tramo ya cubierto (fijo u ocupación), salta directamente a su fin.
-        t = ap_min
-        while t < ci_min:
-            en_cubierto = next((fin for ini, fin, _ in cubiertos if ini <= t < fin), None)
-            if en_cubierto is not None:
-                t = en_cubierto
-                continue
+        if huecos_reservables:
+            # CONFIRMADO con datos reales (Origen Pádel Club, Pista 5
+            # Exterior, 11/11/2026): dentro de un hueco libre NO se puede
+            # reservar cada 30 min sin más. Con un hueco libre de 21:30 a
+            # 00:00 (cierre), la web solo deja reservar a las 21:30 y a las
+            # 23:00 — nunca a las 22:00 ni a las 22:30, aunque sobra tiempo
+            # de sobra para un hueco de 60 min en cualquiera de los dos. La
+            # única explicación consistente: los inicios reservables van
+            # anclados cada 90 min EMPEZANDO justo donde arranca ese hueco
+            # libre (el fin de lo anterior — fijo u ocupación —, o la
+            # apertura del centro si es el primer hueco del día), no cada
+            # 30 min sueltos. Esto además explica de forma unificada todos
+            # los casos de "pegado a fijo" vistos antes: un hueco ajustado
+            # solo tiene un único punto de anclaje posible, el propio
+            # inicio del hueco.
+            huecos: list[tuple[int, int]] = []
+            cursor = ap_min
+            for ini, fin, _ in cubiertos:
+                if ini > cursor:
+                    huecos.append((cursor, ini))
+                cursor = max(cursor, fin)
+            if cursor < ci_min:
+                huecos.append((cursor, ci_min))
 
-            if not huecos_reservables:
-                # Esta pista no vende nada fuera de sus franjas fijas: no se
-                # genera ninguna franja para este hueco, ni libre ni ocupada.
-                t += MATCHPOINT_PASO_MIN
-                continue
+            for zona_ini, zona_fin in huecos:
+                limite_zona = zona_fin
+                if fin_res_min is not None and fin_res_min < limite_zona:
+                    limite_zona = fin_res_min
 
-            limite = ci_min
-            limite_es_fijo = False  # ¿el límite viene de que empieza una franja fija?
-            limite_es_cierre = True  # ¿el límite es el cierre del centro (o la ventana de reservas)?
-            if fin_res_min is not None and fin_res_min < limite:
-                limite, limite_es_fijo, limite_es_cierre = fin_res_min, False, False
-            siguientes = [(ini, es_fijo) for ini, _, es_fijo in cubiertos if ini > t]
-            if siguientes:
-                ini_siguiente, es_fijo_siguiente = min(siguientes, key=lambda x: x[0])
-                if ini_siguiente < limite:
-                    limite, limite_es_fijo, limite_es_cierre = ini_siguiente, es_fijo_siguiente, False
-
-            hueco = limite - t
-            if hueco < MATCHPOINT_DURACION_MIN:
-                # Ni 60 min caben antes del siguiente tramo cubierto: no hay
-                # nada que reservar aquí y no merece la pena generar franja.
-                t += MATCHPOINT_PASO_MIN
-                continue
-
-            if hueco < 90 and tiene_fijos:
-                # Hueco ajustado (solo caben 60, no 90): por lo que hemos
-                # comprobado con datos reales, en pistas que SÍ tienen alguna
-                # franja fija, la web solo ofrece este caso en dos
-                # situaciones:
-                #   a) lo que viene después es el INICIO de una franja fija, o
-                #   b) lo que viene después es el CIERRE del centro (o el fin
-                #      de la ventana de reservas) Y además el hueco empieza
-                #      justo donde terminó otro tramo cubierto (fijo u
-                #      ocupación) — si empezara más adelante, dentro de ese
-                #      mismo tramo libre, no se ofrece.
-                # Si lo que viene después es una OCUPACIÓN (no el cierre, no
-                # una fija), nunca se ofrece. En pistas sin ninguna franja
-                # fija (todo el día es zona libre, como la pista exterior de
-                # este club o como Beteró) esta restricción no aplica: ahí un
-                # hueco ajustado de 60 min sí se puede reservar sin más.
-                t_en_borde = t in cubierto_termina_en
-                pegado_a_fijo = limite_es_fijo or (t_en_borde and limite_es_cierre)
-                if not pegado_a_fijo:
-                    t += MATCHPOINT_PASO_MIN
-                    continue
-
-            libre = True
-            if ini_res_min is not None and t < ini_res_min:
-                libre = False
-            duraciones_posibles = ([60, 90] if hueco >= 90 else [60]) if libre else None
-            franjas.append({
-                "pista": nombre, "tipo": tipo_pista,
-                "hora_inicio": _mp_hhmm(t), "hora_fin": _mp_hhmm(t + MATCHPOINT_DURACION_MIN),
-                "libre": libre, "duraciones_posibles": duraciones_posibles, "_orden": t,
-            })
-            t += MATCHPOINT_PASO_MIN
+                ancla = zona_ini
+                while ancla < limite_zona:
+                    restante = limite_zona - ancla
+                    if restante < MATCHPOINT_DURACION_MIN:
+                        # Ni 60 min caben antes del fin de este hueco: no hay
+                        # más anclas válidas en este hueco libre.
+                        break
+                    libre = True
+                    if ini_res_min is not None and ancla < ini_res_min:
+                        libre = False
+                    duraciones_posibles = ([60, 90] if restante >= 90 else [60]) if libre else None
+                    franjas.append({
+                        "pista": nombre, "tipo": tipo_pista,
+                        "hora_inicio": _mp_hhmm(ancla), "hora_fin": _mp_hhmm(ancla + MATCHPOINT_DURACION_MIN),
+                        "libre": libre, "duraciones_posibles": duraciones_posibles, "_orden": ancla,
+                    })
+                    ancla += 90
 
     franjas.sort(key=lambda f: (_numero_pista(f["pista"]), f["pista"], f["_orden"]))
     for f in franjas:
