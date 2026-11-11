@@ -568,41 +568,64 @@ def matchpoint_combinado_parsear(
         huecos_reservables = (not tiene_fijos) or bool(col.get("CombinaHorariosFijosYLibres"))
 
         if huecos_reservables:
-            # CONFIRMADO con datos reales (Origen Pádel Club, Pista 5
-            # Exterior, 11/11/2026): dentro de un hueco libre NO se puede
-            # reservar cada 30 min sin más. Con un hueco libre de 21:30 a
-            # 00:00 (cierre), la web solo deja reservar a las 21:30 y a las
-            # 23:00 — nunca a las 22:00 ni a las 22:30, aunque sobra tiempo
-            # de sobra para un hueco de 60 min en cualquiera de los dos. La
-            # única explicación consistente: los inicios reservables van
-            # anclados cada 90 min EMPEZANDO justo donde arranca ese hueco
-            # libre (el fin de lo anterior — fijo u ocupación —, o la
-            # apertura del centro si es el primer hueco del día), no cada
-            # 30 min sueltos. Esto además explica de forma unificada todos
-            # los casos de "pegado a fijo" vistos antes: un hueco ajustado
-            # solo tiene un único punto de anclaje posible, el propio
-            # inicio del hueco.
-            huecos: list[tuple[int, int]] = []
+            # CONFIRMADO con dos datos reales independientes (11/11/2026):
+            #
+            # 1) Origen Pádel Club, Pista 5 Exterior: hueco libre de 21:30 a
+            #    00:00 (cierre). Solo se puede reservar a las 21:30 y a las
+            #    23:00 — nunca a las 22:00 ni a las 22:30, aunque sobra
+            #    tiempo de sobra para un hueco de 60 min en cualquiera de
+            #    los dos.
+            # 2) One Pádel Valencia, Pista 13: hueco libre de 18:30 (fin de
+            #    un horario fijo) a 19:30 (inicio de una reserva), 60 min
+            #    exactos. NO se puede reservar ahí, pese a ser un hueco
+            #    "pegado" al fin de una franja fija.
+            #
+            # La única explicación que encaja con los dos casos a la vez:
+            # NO hay una rejilla de 90 min distinta por cada hueco — hay
+            # UNA SOLA rejilla de 90 min para todo el centro, anclada a su
+            # hora de apertura (en el caso 1, 21:30 y 23:00 son ambos
+            # múltiplos exactos de 90 min desde las 08:00 de apertura; en
+            # el caso 2, las propias franjas fijas de Pista 13 —15:30,
+            # 17:00, 18:30, 21:30...— también lo son). Solo esos instantes
+            # de la rejilla global son horas de inicio válidas; el resto no
+            # se ofrece aunque sobre tiempo.
+            # Además, un hueco AJUSTADO (en el que solo cabe 60 min, no 90)
+            # solo se ofrece si lo que viene justo después es el INICIO DE
+            # OTRA FRANJA FIJA o el CIERRE del centro — nunca si es otra
+            # reserva (caso 2 de arriba).
+            huecos: list[tuple[int, int, bool, bool]] = []  # (ini, fin, fin_es_fijo, fin_es_cierre)
             cursor = ap_min
-            for ini, fin, _ in cubiertos:
+            for ini, fin, es_fijo in cubiertos:
                 if ini > cursor:
-                    huecos.append((cursor, ini))
+                    huecos.append((cursor, ini, es_fijo, False))
                 cursor = max(cursor, fin)
             if cursor < ci_min:
-                huecos.append((cursor, ci_min))
+                huecos.append((cursor, ci_min, False, True))
 
-            for zona_ini, zona_fin in huecos:
+            for zona_ini, zona_fin, fin_es_fijo, fin_es_cierre in huecos:
                 limite_zona = zona_fin
                 if fin_res_min is not None and fin_res_min < limite_zona:
-                    limite_zona = fin_res_min
+                    # El fin de la ventana de reservas corta el hueco antes de
+                    # tiempo: no cuenta como "fijo" ni como "cierre" a efectos
+                    # de permitir un hueco ajustado justo ahí.
+                    limite_zona, fin_es_fijo, fin_es_cierre = fin_res_min, False, False
 
-                ancla = zona_ini
+                # Primer punto de la rejilla global (ap_min + 90k) que cae
+                # dentro de este hueco.
+                offset = zona_ini - ap_min
+                k = -(-offset // 90) if offset > 0 else 0  # división hacia arriba
+                ancla = ap_min + k * 90
+
                 while ancla < limite_zona:
                     restante = limite_zona - ancla
                     if restante < MATCHPOINT_DURACION_MIN:
-                        # Ni 60 min caben antes del fin de este hueco: no hay
-                        # más anclas válidas en este hueco libre.
+                        # Ya no caben ni 60 min: no hay más anclas válidas.
                         break
+                    if restante < 90 and not (fin_es_fijo or fin_es_cierre):
+                        # Hueco ajustado que termina en otra reserva (ni fija
+                        # ni cierre): no se ofrece.
+                        ancla += 90
+                        continue
                     libre = True
                     if ini_res_min is not None and ancla < ini_res_min:
                         libre = False
@@ -746,7 +769,38 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
                     "No se han publicado datos de este día."
                 )
             ocupadas.append((ini, fin))
+        ocupadas.sort()
 
+        # CONFIRMADO con datos reales (Polideportivo Verge del Carme — Beteró,
+        # 11/11/2026): dentro de un hueco libre, un inicio/duración solo se
+        # ofrece si NI ANTES NI DESPUÉS de ese bloque de 60/90 min queda un
+        # resto de exactamente 30 minutos sin aprovechar (0 o 60+ está bien,
+        # exactamente 30 no). Ejemplos verificados en vivo:
+        #   - Hueco de 90 min (22:00-23:30): solo se ofrece 90 a las 22:00
+        #     (60 dejaría 30 min tirados al final) — nunca 60, y nada a las
+        #     22:30 (eso dejaría 30 min tirados al principio).
+        #   - Hueco de 120 min (21:30-23:30): se ofrece 60 a las 21:30 Y 60 a
+        #     las 22:30 — nunca 90 en ninguna de las dos (90 a las 21:30
+        #     dejaría 30 min tirados al final).
+        #   - Hueco grande de 240 min (16:30-20:30): a las 19:00 solo 90
+        #     (60 dejaría 30 min tirados al final), a las 19:30 solo 60 (90
+        #     no cabe), nada a las 20:00 (ya no cabe ni 60 antes del final).
+        # Para cada hueco libre [zona_ini, zona_fin), un bloque (inicio=t,
+        # duración=d) es válido si el resto ANTES (t - zona_ini) y el resto
+        # DESPUÉS (zona_fin - (t+d)) son cada uno, o bien 0, o bien >= 60.
+        zonas: list[tuple[int, int]] = []
+        cursor = ap_min
+        for ini, fin in ocupadas:
+            if ini > cursor:
+                zonas.append((cursor, ini))
+            cursor = max(cursor, fin)
+        if cursor < ci_min:
+            zonas.append((cursor, ci_min))
+
+        def _resto_valido(m: int) -> bool:
+            return m <= 0 or m >= MATCHPOINT_DURACION_MIN
+
+        idx_zona = 0
         t = ap_min
         while t + MATCHPOINT_DURACION_MIN <= ci_min:
             fin_t = t + MATCHPOINT_DURACION_MIN
@@ -758,24 +812,21 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
 
             duraciones_posibles = None
             if libre:
-                # Hasta dónde llega el hueco de verdad: lo limita lo que venga
-                # antes entre el cierre del centro, el fin de la ventana de
-                # reservas, o el inicio de la siguiente reserva REAL (no el
-                # siguiente marca de 30 min descartada del grid, que es otra
-                # cosa: ver el caso "08:30 libre, 09:00 tachada" comentado
-                # más abajo, en la constante MATCHPOINT_DURACION_MIN).
-                limite = ci_min
-                if fin_res_min is not None:
-                    limite = min(limite, fin_res_min)
-                siguientes_inicios = [ini for ini, _ in ocupadas if ini > t]
-                if siguientes_inicios:
-                    limite = min(limite, min(siguientes_inicios))
-                duracion_hueco = limite - t
-                # Solo se puede reservar en bloques de 60 o 90 min. El hueco
-                # ya garantiza al menos 60 (es la condición del bucle); si
-                # además da para 90, esa también es una opción VÁLIDA A LA
-                # VEZ (no en vez de 60) — el jugador elige cuál reservar.
-                duraciones_posibles = [60, 90] if duracion_hueco >= 90 else [60]
+                while idx_zona < len(zonas) and zonas[idx_zona][1] <= t:
+                    idx_zona += 1
+                zona_ini, zona_fin = zonas[idx_zona]
+                if fin_res_min is not None and fin_res_min < zona_fin:
+                    zona_fin = fin_res_min
+                resto_antes = t - zona_ini
+                vuelta = [
+                    dur for dur in (60, 90)
+                    if t + dur <= zona_fin
+                    and _resto_valido(resto_antes)
+                    and _resto_valido(zona_fin - (t + dur))
+                ]
+                duraciones_posibles = vuelta or None
+                if duraciones_posibles is None:
+                    libre = False
 
             franjas.append({
                 "pista": nombre,
