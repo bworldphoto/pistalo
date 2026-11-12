@@ -572,7 +572,13 @@ def matchpoint_combinado_parsear(
         # 1,5,6,9,11,13 mostraban 23:00 y la web real no lo permite; Pista 11
         # tampoco deja reservar 22:30-00:00). Solo se ofrecen los fijos. Los
         # huecos libres solo existen en pistas SIN fijos (Origen Pista 5).
-        huecos_reservables = not tiene_fijos
+        #
+        # ACTUALIZACIÓN 12/11/2026 19:47: aun así, a las 23:00 (último tramo del
+        # día, punto de la rejilla de 90 min desde la apertura) SÍ se puede
+        # reservar 60 min en las Pistas 1,5,6,9,13 y NO en la 11 (comprobado
+        # pinchando el hueco). No hay regla simple: en modo verificación se
+        # proponen los puntos de esa rejilla y decide el servidor del club.
+        huecos_reservables = (not tiene_fijos) or candidatos_densos
 
         if huecos_reservables:
             # CONFIRMADO con dos datos reales independientes (11/11/2026):
@@ -624,10 +630,19 @@ def matchpoint_combinado_parsear(
                 # anterior, no en la apertura. Hueco 19:00-20:30 entre dos
                 # reservas: 19:00 reservable (solo 90). Los datos del 11/11
                 # (21:30 sí, 22:00 no, 22:30 no, 23:00 sí) también encajan.
-                ancla = zona_ini
-                # Modo verificación: se proponen TODOS los inicios cada 30 min
-                # y decide el servidor del club (ObtenerInformacionHuecoLibre).
-                paso = 30 if candidatos_densos else 90
+                if tiene_fijos:
+                    # Pista con fijos (modo verificación): solo los puntos de
+                    # la rejilla global ap_min + 90k que caen en el hueco.
+                    offset = zona_ini - ap_min
+                    k = -(-offset // 90) if offset > 0 else 0
+                    ancla = ap_min + k * 90
+                    paso = 90
+                else:
+                    ancla = zona_ini
+                    # Modo verificación: se proponen TODOS los inicios cada
+                    # 30 min y decide el servidor del club
+                    # (ObtenerInformacionHuecoLibre).
+                    paso = 30 if candidatos_densos else 90
 
                 while ancla < limite_zona:
                     restante = limite_zona - ancla
@@ -1176,7 +1191,7 @@ def generar_datos() -> tuple[dict, list]:
     )
     onepadel = MatchpointClient(
         ONEPADEL_BASE_URL, ONEPADEL_ID_CUADRO, ONEPADEL_TIPO_PISTAS,
-        parser=matchpoint_combinado_parsear,
+        parser=matchpoint_combinado_parsear, verificar_huecos=True,
     )
     origenpadel = MatchpointClient(
         ORIGENPADEL_BASE_URL, ORIGENPADEL_ID_CUADRO, ORIGENPADEL_TIPO_PISTAS,

@@ -529,7 +529,33 @@ class TestVerificacionServidor(unittest.TestCase):
         c = self._cliente()
         f = c._verificar(matchpoint_combinado_parsear(d, FECHA, "Indoor", candidatos_densos=True), FECHA)
         self.assertTrue(_franja(f, "Pista 3", "22:00")["libre"])
-        self.assertEqual(c.sesion.horas, [])
+        self.assertNotIn("22:00", c.sesion.horas)  # el fijo no se consulta
+        self.assertTrue(set(c.sesion.horas) <= {"08:00", "09:30", "11:00", "12:30", "14:00",
+                                                  "15:30", "17:00", "18:30", "20:00", "21:30", "23:00"})
+
+    # Confirmado en vivo 12/11/2026 pinchando el hueco en One Pádel: a las
+    # 23:00 se reserva (solo 60) en Pistas 1,5,6,9,13 y NO en la 11.
+    def test_onepadel_23h_decide_el_servidor_pista9_si_pista11_no(self):
+        class Sesion(_SesionFalsa):
+            def post(self, url, headers=None, data=None, timeout=None):
+                import json as _j
+                c = _j.loads(data)
+                ok = c["idRecurso"] == "21" and c["hora"] == "23:00"  # 21 = Pista 9
+                return _RespFalsa({"Opciones": [{"Descripcion": "60min Online"}] if ok else []})
+        d = _dia_matchpoint([
+            {**_col_combinado("Pista 9", fijos=[("15:30", "17:00"), ("21:30", "23:00")],
+                              ocup=[("12:30", "15:30"), ("17:00", "21:30")], combina=True),
+             "Id": "21", "IdModalidadFijaParaReservas": 4},
+            {**_col_combinado("Pista 11", fijos=[("16:00", "17:30")],
+                              ocup=[("18:00", "22:30")], combina=True),
+             "Id": "23", "IdModalidadFijaParaReservas": 4},
+        ])
+        c = self._cliente()
+        c.sesion = Sesion()
+        f = c._verificar(matchpoint_combinado_parsear(d, FECHA, "Indoor", candidatos_densos=True), FECHA)
+        self.assertEqual(_franja(f, "Pista 9", "23:00")["duraciones_posibles"], [60])
+        self.assertIsNone(_franja(f, "Pista 11", "23:00"))
+        self.assertTrue(_franja(f, "Pista 9", "21:30")["libre"])  # el fijo se conserva
 
     # Beteró (idCuadro 3, idmodalidad 49), 12/11/2026: mismo endpoint. Hueco
     # 22:00-24:00 libre: el servidor solo permite 90 a las 22:00.
