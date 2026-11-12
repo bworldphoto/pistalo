@@ -481,6 +481,7 @@ def _normalizar_nombre_pista(nombre: str) -> str:
 def matchpoint_combinado_parsear(
     d: dict, fecha: date, tipo_pistas: str,
     duraciones_validas: tuple[int, ...] = (60, 90),
+    candidatos_densos: bool = False,
 ) -> list[dict]:
     """
     Para clubes donde CADA PISTA combina franjas fijas de 90 min (como 7Padel)
@@ -565,7 +566,13 @@ def matchpoint_combinado_parsear(
         # se puede reservar libremente o no: "CombinaHorariosFijosYLibres".
         # Si no tiene ninguna fija, es zona libre de principio a fin (Beteró),
         # así que esto no aplica.
-        huecos_reservables = (not tiene_fijos) or bool(col.get("CombinaHorariosFijosYLibres"))
+        #
+        # CORRECCIÓN 12/11/2026 (datos reales One Pádel): con fijos, el resto
+        # NO es reservable aunque CombinaHorariosFijosYLibres sea true (Pistas
+        # 1,5,6,9,11,13 mostraban 23:00 y la web real no lo permite; Pista 11
+        # tampoco deja reservar 22:30-00:00). Solo se ofrecen los fijos. Los
+        # huecos libres solo existen en pistas SIN fijos (Origen Pista 5).
+        huecos_reservables = not tiene_fijos
 
         if huecos_reservables:
             # CONFIRMADO con dos datos reales independientes (11/11/2026):
@@ -612,16 +619,22 @@ def matchpoint_combinado_parsear(
 
                 # Primer punto de la rejilla global (ap_min + 90k) que cae
                 # dentro de este hueco.
-                offset = zona_ini - ap_min
-                k = -(-offset // 90) if offset > 0 else 0  # división hacia arriba
-                ancla = ap_min + k * 90
+                # CORRECCIÓN 12/11/2026 (Origen Pista 5, confirmado en vivo):
+                # la rejilla de 90 min arranca donde termina la reserva
+                # anterior, no en la apertura. Hueco 19:00-20:30 entre dos
+                # reservas: 19:00 reservable (solo 90). Los datos del 11/11
+                # (21:30 sí, 22:00 no, 22:30 no, 23:00 sí) también encajan.
+                ancla = zona_ini
+                # Modo verificación: se proponen TODOS los inicios cada 30 min
+                # y decide el servidor del club (ObtenerInformacionHuecoLibre).
+                paso = 30 if candidatos_densos else 90
 
                 while ancla < limite_zona:
                     restante = limite_zona - ancla
                     if restante < MATCHPOINT_DURACION_MIN:
                         # Ya no caben ni 60 min: no hay más anclas válidas.
                         break
-                    if restante < 90 and not (fin_es_fijo or fin_es_cierre):
+                    if restante < 90 and not (fin_es_fijo or fin_es_cierre) and not candidatos_densos:
                         # Hueco ajustado que termina en otra reserva (ni fija
                         # ni cierre): no se ofrece.
                         ancla += 90
@@ -629,13 +642,22 @@ def matchpoint_combinado_parsear(
                     libre = True
                     if ini_res_min is not None and ancla < ini_res_min:
                         libre = False
-                    duraciones_posibles = ([60, 90] if restante >= 90 else [60]) if libre else None
-                    franjas.append({
+                    if restante >= 90:
+                        # No se deja un sobrante de 1..59 min (19:00-20:30 -> solo 90).
+                        durs = [dd for dd in (60, 90)
+                                if (restante - dd) == 0 or (restante - dd) >= 60] or [60, 90]
+                    else:
+                        durs = [60]
+                    duraciones_posibles = durs if libre else None
+                    franja = {
                         "pista": nombre, "tipo": tipo_pista,
                         "hora_inicio": _mp_hhmm(ancla), "hora_fin": _mp_hhmm(ancla + MATCHPOINT_DURACION_MIN),
                         "libre": libre, "duraciones_posibles": duraciones_posibles, "_orden": ancla,
-                    })
-                    ancla += 90
+                    }
+                    if candidatos_densos and libre:
+                        franja["_verif"] = (col.get("Id"), col.get("IdModalidadFijaParaReservas"))
+                    franjas.append(franja)
+                    ancla += paso
 
     franjas.sort(key=lambda f: (_numero_pista(f["pista"]), f["pista"], f["_orden"]))
     for f in franjas:
@@ -744,7 +766,7 @@ def _matchpoint_apertura_cierre(d: dict, inicio_dia: datetime) -> tuple[int, int
     return ap_min, ci_min
 
 
-def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
+def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str, candidatos_densos: bool = False) -> list[dict]:
     """Convierte la respuesta de ObtenerCuadro en franjas (hora de inicio + libre/ocupada)."""
     _matchpoint_dia_valido(d, fecha)
     inicio_dia = datetime(fecha.year, fecha.month, fecha.day)
@@ -811,7 +833,12 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
                 libre = False  # aún no se admiten reservas para esa hora
 
             duraciones_posibles = None
-            if libre:
+            verif = None
+            if libre and candidatos_densos:
+                # Modo verificación: el servidor del club decide (ObtenerInformacionHuecoLibre).
+                duraciones_posibles = [MATCHPOINT_DURACION_MIN]
+                verif = (col.get("Id"), col.get("IdModalidadFijaParaReservas"))
+            elif libre:
                 while idx_zona < len(zonas) and zonas[idx_zona][1] <= t:
                     idx_zona += 1
                 zona_ini, zona_fin = zonas[idx_zona]
@@ -828,14 +855,17 @@ def matchpoint_parsear(d: dict, fecha: date, tipo_pistas: str) -> list[dict]:
                 if duraciones_posibles is None:
                     libre = False
 
-            franjas.append({
+            franja = {
                 "pista": nombre,
                 "tipo": tipo_pistas,
                 "hora_inicio": _mp_hhmm(t),
                 "hora_fin": _mp_hhmm(fin_t),
                 "libre": libre,
                 "duraciones_posibles": duraciones_posibles,
-            })
+            }
+            if verif is not None:
+                franja["_verif"] = verif
+            franjas.append(franja)
             t += MATCHPOINT_PASO_MIN
     return franjas
 
@@ -847,7 +877,11 @@ class MatchpointClient:
     vez si el servidor devuelve una respuesta vacía.
     """
 
-    def __init__(self, base_url: str, id_cuadro: str, tipo_pistas: str, parser=None):
+    def __init__(self, base_url: str, id_cuadro: str, tipo_pistas: str, parser=None,
+                 verificar_huecos: bool = False):
+        self.verificar_huecos = verificar_huecos
+        self.clave_valida = None
+        self.api_hueco_url = f"{base_url.rstrip('/')}/booking/srvc.aspx/ObtenerInformacionHuecoLibre"
         self.base = base_url.rstrip("/")
         self.grid_url = f"{self.base}/Booking/Grid.aspx"
         self.api_url = f"{self.base}/booking/srvc.aspx/ObtenerCuadro"
@@ -894,6 +928,7 @@ class MatchpointClient:
             datos = resp.json()["d"]
             ultimo = datos
             if datos.get("Columnas"):
+                self.clave_valida = clave
                 return datos
         return ultimo
 
@@ -913,7 +948,56 @@ class MatchpointClient:
                 f"TieneClienteAcceso={datos.get('TieneClienteAcceso')!r}). Puede que el servidor "
                 "rechace la clave o el formato de la fecha, o que la web haya cambiado."
             )
+        if self.verificar_huecos:
+            try:
+                franjas = self.parser(datos, fecha, self.tipo_pistas, candidatos_densos=True)
+                return self._verificar(franjas, fecha)
+            except Exception as e:  # noqa: BLE001 - si falla, volvemos a las reglas
+                print(f"[AVISO] Verificación contra el club no disponible ({type(e).__name__}: {e}); "
+                      "se usan las reglas internas.")
         return self.parser(datos, fecha, self.tipo_pistas)
+
+    def _verificar(self, franjas: list[dict], fecha: date) -> list[dict]:
+        """
+        Pregunta al servidor del club si cada hueco libre propuesto se puede
+        reservar (la misma llamada que hace su web al pinchar un hueco).
+        Confirmado 12/11/2026 en Origen Pista 5: 21:30 -> opciones "60min Online"
+        y "90min Online"; 22:00 -> "Opciones": [] (la web dice "Opciones no
+        disponibles"). Sin opciones = no reservable; las duraciones que
+        devuelve el servidor sustituyen a las calculadas.
+        """
+        if not self.clave_valida:
+            raise EstructuraCambiada("No hay clave válida para verificar huecos.")
+        resultado = []
+        for f in franjas:
+            verif = f.pop("_verif", None)
+            if verif is None:
+                resultado.append(f)
+                continue
+            id_recurso, id_modalidad = verif
+            cuerpo = {
+                "idCuadro": self.id_cuadro, "idRecurso": str(id_recurso),
+                "idmodalidad": id_modalidad,
+                "fecha": f"{fecha.day}/{fecha.month}/{fecha.year}",
+                "hora": f["hora_inicio"], "key": self.clave_valida,
+            }
+            resp = self.sesion.post(self.api_hueco_url, headers=self._cabeceras(True),
+                                    data=json.dumps(cuerpo), timeout=15)
+            resp.raise_for_status()
+            info = resp.json()["d"]
+            if "Opciones" not in info:
+                raise EstructuraCambiada("La respuesta de ObtenerInformacionHuecoLibre no trae «Opciones».")
+            duraciones = sorted({
+                int(m.group(1)) for o in info["Opciones"]
+                for m in [re.search(r"(\d+)\s*min", o.get("Descripcion") or "")] if m
+            })
+            if not duraciones:
+                continue  # el club no lo permite: no se muestra
+            f["libre"] = True
+            f["duraciones_posibles"] = duraciones
+            resultado.append(f)
+            time.sleep(0.15)
+        return resultado
 
 
 # ----------------------------------------------------------------------
@@ -1085,7 +1169,7 @@ def generar_datos() -> tuple[dict, list]:
     errores = []
     sedavi_clases_desconocidas.clear()
     sedavi_franjas_sin_lista.clear()
-    fhcv = MatchpointClient(FHCV_BASE_URL, FHCV_ID_CUADRO, FHCV_TIPO_PISTAS)
+    fhcv = MatchpointClient(FHCV_BASE_URL, FHCV_ID_CUADRO, FHCV_TIPO_PISTAS, verificar_huecos=True)
     sietepadel = MatchpointClient(
         SIETEPADEL_BASE_URL, SIETEPADEL_ID_CUADRO, SIETEPADEL_TIPO_PISTAS,
         parser=sietepadel_parsear,
@@ -1096,7 +1180,7 @@ def generar_datos() -> tuple[dict, list]:
     )
     origenpadel = MatchpointClient(
         ORIGENPADEL_BASE_URL, ORIGENPADEL_ID_CUADRO, ORIGENPADEL_TIPO_PISTAS,
-        parser=matchpoint_combinado_parsear,
+        parser=matchpoint_combinado_parsear, verificar_huecos=True,
     )
     # Clubes que en algún día han dado (None, None): ese día en
     # concreto no está disponible por un motivo YA EXPLICADO (ver
