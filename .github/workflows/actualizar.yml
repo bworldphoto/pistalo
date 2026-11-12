@@ -25,6 +25,9 @@ jobs:
       - name: Instalar dependencias
         run: pip install requests beautifulsoup4
 
+      - name: Ejecutar tests de regresión
+        run: python test_actualizar_datos.py
+        
       - name: Ejecutar el scraper
         run: python actualizar_datos.py
 
