@@ -578,7 +578,15 @@ def matchpoint_combinado_parsear(
         # reservar 60 min en las Pistas 1,5,6,9,13 y NO en la 11 (comprobado
         # pinchando el hueco). No hay regla simple: en modo verificación se
         # proponen los puntos de esa rejilla y decide el servidor del club.
-        huecos_reservables = (not tiene_fijos) or candidatos_densos
+        #
+        # ACTUALIZACIÓN 12/11/2026 20:19: pero en pistas con fijos solo se
+        # proponen huecos libres si el propio club lo declara
+        # (CombinaHorariosFijosYLibres=true, One Pádel). Origen Pistas 1-4 traen
+        # false: en la web real no se puede reservar a las 08:00 aunque el
+        # servidor de huecos responda con opciones.
+        huecos_reservables = (not tiene_fijos) or (
+            candidatos_densos and bool(col.get("CombinaHorariosFijosYLibres"))
+        )
 
         if huecos_reservables:
             # CONFIRMADO con dos datos reales independientes (11/11/2026):
@@ -630,19 +638,13 @@ def matchpoint_combinado_parsear(
                 # anterior, no en la apertura. Hueco 19:00-20:30 entre dos
                 # reservas: 19:00 reservable (solo 90). Los datos del 11/11
                 # (21:30 sí, 22:00 no, 22:30 no, 23:00 sí) también encajan.
-                if tiene_fijos:
-                    # Pista con fijos (modo verificación): solo los puntos de
-                    # la rejilla global ap_min + 90k que caen en el hueco.
-                    offset = zona_ini - ap_min
-                    k = -(-offset // 90) if offset > 0 else 0
-                    ancla = ap_min + k * 90
-                    paso = 90
-                else:
-                    ancla = zona_ini
-                    # Modo verificación: se proponen TODOS los inicios cada
-                    # 30 min y decide el servidor del club
-                    # (ObtenerInformacionHuecoLibre).
-                    paso = 30 if candidatos_densos else 90
+                ancla = zona_ini
+                # Modo verificación: se proponen TODOS los inicios cada 30 min
+                # (también en pistas con fijos: 13/11/2026 One Pádel Pista 1
+                # se puede reservar a las 08:30, 60 min, fuera de la rejilla
+                # de 90) y decide el servidor del club
+                # (ObtenerInformacionHuecoLibre).
+                paso = 30 if candidatos_densos else 90
 
                 while ancla < limite_zona:
                     restante = limite_zona - ancla
@@ -1011,7 +1013,7 @@ class MatchpointClient:
             f["libre"] = True
             f["duraciones_posibles"] = duraciones
             resultado.append(f)
-            time.sleep(0.15)
+            time.sleep(0.05)
         return resultado
 
 

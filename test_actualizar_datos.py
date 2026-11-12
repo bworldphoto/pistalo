@@ -530,8 +530,7 @@ class TestVerificacionServidor(unittest.TestCase):
         f = c._verificar(matchpoint_combinado_parsear(d, FECHA, "Indoor", candidatos_densos=True), FECHA)
         self.assertTrue(_franja(f, "Pista 3", "22:00")["libre"])
         self.assertNotIn("22:00", c.sesion.horas)  # el fijo no se consulta
-        self.assertTrue(set(c.sesion.horas) <= {"08:00", "09:30", "11:00", "12:30", "14:00",
-                                                  "15:30", "17:00", "18:30", "20:00", "21:30", "23:00"})
+        self.assertIn("08:30", c.sesion.horas)  # también se prueba fuera de la rejilla de 90
 
     # Confirmado en vivo 12/11/2026 pinchando el hueco en One Pádel: a las
     # 23:00 se reserva (solo 60) en Pistas 1,5,6,9,13 y NO en la 11.
@@ -572,6 +571,42 @@ class TestVerificacionServidor(unittest.TestCase):
         libres = {x["hora_inicio"]: x["duraciones_posibles"] for x in c._verificar(f, FECHA) if x["libre"]}
         self.assertEqual(libres, {"22:00": [90]})
         self.assertEqual(c.sesion.horas, ["22:00", "22:30", "23:00"])
+
+    # Confirmado en vivo 12/11/2026 (para el 13/11): One Pádel Lacoste (Pista 1)
+    # permite reservar a las 08:30 (60 min) en el hueco 08:00-09:30, que no
+    # está en la rejilla de 90 min. Hay que proponerlo al servidor.
+    def test_onepadel_pista1_0830_se_propone_al_servidor(self):
+        class Sesion(_SesionFalsa):
+            def post(self, url, headers=None, data=None, timeout=None):
+                import json as _j
+                c = _j.loads(data)
+                self.horas.append(c["hora"])
+                ok = {"08:00": ["60min Online", "90min Online"], "08:30": ["60min Online"]}.get(c["hora"], [])
+                return _RespFalsa({"Opciones": [{"Descripcion": t} for t in ok]})
+        d = _dia_matchpoint([
+            {**_col_combinado("P. Lacoste", fijos=[("15:30", "17:00")], ocup=[("09:30", "11:00")], combina=True),
+             "Id": "13", "IdModalidadFijaParaReservas": 7},
+        ])
+        c = self._cliente()
+        c.sesion = Sesion()
+        f = c._verificar(matchpoint_combinado_parsear(d, FECHA, "Indoor", candidatos_densos=True), FECHA)
+        self.assertEqual(_franja(f, "Pista 1", "08:30")["duraciones_posibles"], [60])
+        self.assertEqual(_franja(f, "Pista 1", "08:00")["duraciones_posibles"], [60, 90])
+
+    # Confirmado en vivo 12/11/2026: Origen Pistas 2 y 4 aparecían libres a las
+    # 08:00 y la web no deja reservar. Traen fijos y CombinaHorariosFijosYLibres
+    # =false: no se debe ni proponer ni mostrar ningún hueco libre.
+    def test_origen_pistas_con_fijos_y_combina_false_no_proponen_huecos(self):
+        d = _dia_matchpoint([
+            {**_col_combinado("Pista 2 JD", fijos=[("09:30", "11:00")], ocup=[("20:00", "21:00")], combina=False),
+             "Id": "14", "IdModalidadFijaParaReservas": 5},
+            {**_col_combinado("Pista 4", fijos=[("09:30", "11:00")], ocup=[("20:00", "21:30")], combina=False),
+             "Id": "16", "IdModalidadFijaParaReservas": 5},
+        ])
+        f = matchpoint_combinado_parsear(d, FECHA, "Indoor", candidatos_densos=True)
+        self.assertEqual([x for x in f if x.get("_verif")], [])
+        self.assertIsNone(_franja(f, "Pista 2", "08:00"))
+        self.assertIsNone(_franja(f, "Pista 4", "08:00"))
 
 
 if __name__ == "__main__":
