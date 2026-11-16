@@ -7,7 +7,9 @@ on:
   workflow_dispatch:
     # Esto permite lanzarlo tú a mano desde la pestaña "Actions" de GitHub,
     # sin tener que esperar a la próxima hora en punto.
-
+concurrency:
+  group: actualizar-pistalo
+  cancel-in-progress: false
 jobs:
   actualizar:
     runs-on: ubuntu-latest
@@ -37,4 +39,5 @@ jobs:
           git config user.email "bot@pistalo.local"
           git add data/disponibilidad.json
           git diff --staged --quiet || git commit -m "Actualizar disponibilidad $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git pull --rebase -X theirs origin main
           git push
