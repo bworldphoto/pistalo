@@ -353,6 +353,120 @@ def sedavi_snapshot(fecha: date) -> list[dict]:
 
 
 # ----------------------------------------------------------------------
+# NEW PADEL CLUB (Aldaia) — sistema propio en PHP (no es Matchpoint)
+# ----------------------------------------------------------------------
+# La web carga la parrilla por AJAX: POST cuadros.php con variable = días
+# desde hoy (por eso la URL pública lleva ?diferencia=N). Cada tarjeta es un
+# <div id="pistaN-HHMM"> y su ESTADO lo da la imagen de fondo:
+#   pistas-verde.gif -> libre (además lleva class "cuadros2" y onclick pista_ajax)
+#   pistas-roja.gif  -> con partida / ocupada (lleva fotos y nombres de jugadores,
+#                       que Pistalo NO lee ni guarda)
+#   pistas-grey.gif  -> hora ya pasada (opacity 0.6, sin onclick)
+# Cualquier otra imagen se trata como OCUPADA y se avisa (puede ser «Abierta»,
+# «Cerrada» o «del Club»: hay que ver qué significa antes de mostrarla).
+#
+# Cada pista aparece cada 90 min (pista 1: 08:30, 10:00, 11:30...), desfasada
+# 30 min de la siguiente: son partidas de 90 min.
+# ⚠️ PENDIENTE DE CONFIRMAR con el club: duración real de una reserva libre
+# y si la pista es cubierta o exterior.
+
+NEWPADEL_CLUB = "New Padel Club"
+NEWPADEL_ZONA = "Aldaia, Valencia"
+NEWPADEL_BASE_URL = "https://www.newpadelclub.com"
+NEWPADEL_TIPO_PISTAS = "Cubierta"
+NEWPADEL_DURACION_MIN = 90
+
+NEWPADEL_ESTADOS = {"verde": "libre", "roja": "ocupada", "grey": "pasada"}
+newpadel_imagenes_desconocidas: set[str] = set()
+
+_NEWPADEL_ID = re.compile(r"^pista(\d+)-(\d{2})(\d{2})$")
+_NEWPADEL_IMG = re.compile(r"imagenes/pistas-([\w-]+)\.gif")
+
+
+def newpadel_url_dia(fecha: date) -> str:
+    return f"{NEWPADEL_BASE_URL}/partidas?diferencia={(fecha - hoy()).days}"
+
+
+def newpadel_obtener_html(fecha: date) -> str:
+    dias = (fecha - hoy()).days
+    sesion = requests.Session()
+    sesion.headers.update(HEADERS)
+    # 1) La página da la cookie de sesión (sess_valenciapadel_bbdd_newpadel).
+    resp = sesion.get(newpadel_url_dia(fecha), timeout=15)
+    resp.raise_for_status()
+    # 2) La parrilla se pide igual que hace la web (cURL real del 16-11-2026):
+    #    POST cuadros.php, variable = días desde hoy, cabecera XMLHttpRequest.
+    resp = sesion.post(
+        f"{NEWPADEL_BASE_URL}/cuadros.php",
+        data={"variable": dias},
+        headers={
+            "X-Requested-With": "XMLHttpRequest",
+            "Origin": NEWPADEL_BASE_URL,
+            "Referer": newpadel_url_dia(fecha),
+        },
+        timeout=15,
+    )
+    resp.raise_for_status()
+    return resp.text
+
+
+def newpadel_parsear(html: str, fecha: date) -> list[dict]:
+    soup = BeautifulSoup(html, "html.parser")
+    campo = soup.find("input", id="fechareserva")
+    tarjetas = [d for d in soup.find_all("div", id=_NEWPADEL_ID)]
+    if not tarjetas:
+        raise EstructuraCambiada(
+            "No se ha encontrado ninguna tarjeta de pista (div id=\"pistaN-HHMM\") en la respuesta de New Padel Club. "
+            "Probablemente la web ha cambiado o ha devuelto otra página."
+        )
+    if campo is None:
+        raise EstructuraCambiada(
+            "La respuesta de New Padel Club no indica a qué día corresponde (falta fechareserva), "
+            "así que no se puede asegurar que sean los datos del día pedido."
+        )
+    if campo.get("value", "").strip() != fecha.isoformat():
+        raise DiaNoDisponible(
+            f"La web no ofrece el {fecha.isoformat()} (ha devuelto datos de: {campo.get('value', '?')})."
+        )
+
+    franjas, vistas = [], set()
+    for t in tarjetas:
+        m = _NEWPADEL_ID.match(t["id"])
+        pista, hh, mm = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if (pista, hh, mm) in vistas:
+            continue
+        vistas.add((pista, hh, mm))
+        # Solo se lee el estilo (imagen de fondo) y el onclick: nunca los nombres de jugadores.
+        img = _NEWPADEL_IMG.search(t.get("style", ""))
+        estado = NEWPADEL_ESTADOS.get(img.group(1)) if img else None
+        if estado is None:
+            newpadel_imagenes_desconocidas.add(img.group(1) if img else "(sin imagen)")
+        libre = False
+        if estado == "libre":
+            # Doble comprobación: una tarjeta libre de verdad es clicable para reservar.
+            if f"pista_ajax" in t.get("onclick", "") and t["id"][5:] in t.get("onclick", ""):
+                libre = True
+            else:
+                newpadel_imagenes_desconocidas.add("verde sin onclick de reserva")
+        franjas.append({
+            "_orden": (pista, hh, mm),
+            "pista": f"Pista {pista}",
+            "tipo": NEWPADEL_TIPO_PISTAS,
+            "hora_inicio": f"{hh:02d}:{mm:02d}",
+            "hora_fin": _sumar_minutos(hh, mm, NEWPADEL_DURACION_MIN),
+            "libre": libre,
+        })
+    franjas.sort(key=lambda f: f["_orden"])
+    for f in franjas:
+        del f["_orden"]
+    return franjas
+
+
+def newpadel_snapshot(fecha: date) -> list[dict]:
+    return newpadel_parsear(newpadel_obtener_html(fecha), fecha)
+
+
+# ----------------------------------------------------------------------
 # POLIDEPORTIVO VERGE DEL CARME — BETERÓ (plataforma Matchpoint)
 # ----------------------------------------------------------------------
 # AUTORIZACIÓN: el robots.txt de esta web no permite el acceso automatizado.
@@ -1080,6 +1194,7 @@ PISTAS_MINIMAS_ESPERADAS = {
     "Tu Padel Valencia — Picanya": 4,  # normalmente hay 5
     "Padel Sedaví": 5,               # en el HTML se ven al menos 8 columnas de pista
     FHCV_CLUB: 4,                    # el club tiene 5 pistas en total (confirmado 28-09-2026)
+    NEWPADEL_CLUB: 3,                # 3 pistas vistas en el HTML real (16-11-2026)
     SIETEPADEL_CLUB: 8,              # el club tiene 11 pistas en total (confirmado 28-09-2026)
     ONEPADEL_CLUB: 12,                # el club tiene 15 pistas en total (confirmado 01-10-2026)
     ORIGENPADEL_CLUB: 4,              # el club tiene 5 pistas en total (confirmado 04-10-2026)
@@ -1186,6 +1301,7 @@ def generar_datos() -> tuple[dict, list]:
     errores = []
     sedavi_clases_desconocidas.clear()
     sedavi_franjas_sin_lista.clear()
+    newpadel_imagenes_desconocidas.clear()
     fhcv = MatchpointClient(FHCV_BASE_URL, FHCV_ID_CUADRO, FHCV_TIPO_PISTAS, verificar_huecos=True)
     sietepadel = MatchpointClient(
         SIETEPADEL_BASE_URL, SIETEPADEL_ID_CUADRO, SIETEPADEL_TIPO_PISTAS,
@@ -1246,6 +1362,18 @@ def generar_datos() -> tuple[dict, list]:
         if error_sedavi:
             print(f"[AVISO] {error_sedavi['club']} ({fecha_str}): {error_sedavi['mensaje']}")
             errores.append(error_sedavi)
+
+        club_newpadel, error_newpadel = procesar_club(
+            NEWPADEL_CLUB, NEWPADEL_ZONA, f"{NEWPADEL_BASE_URL}/partidas",
+            newpadel_snapshot, fecha,
+        )
+        if club_newpadel is None and error_newpadel is None:
+            clubs_con_ausencia_explicada.add(NEWPADEL_CLUB)
+        if club_newpadel:
+            clubs_del_dia.append(club_newpadel)
+        if error_newpadel:
+            print(f"[AVISO] {error_newpadel['club']} ({fecha_str}): {error_newpadel['mensaje']}")
+            errores.append(error_newpadel)
 
         club_fhcv, error_fhcv = procesar_club(
             FHCV_CLUB, FHCV_ZONA, f"{FHCV_BASE_URL}/Booking/Grid.aspx",
@@ -1321,6 +1449,19 @@ def generar_datos() -> tuple[dict, list]:
                 f"{', '.join(sorted(sedavi_clases_desconocidas))}. "
                 "Esas franjas se han marcado como «ocupadas» por seguridad. "
                 "Revisa qué significan (por ejemplo, un tipo de reserva nuevo)."
+            ),
+        })
+
+    if newpadel_imagenes_desconocidas:
+        errores.append({
+            "club": NEWPADEL_CLUB,
+            "fecha": hoy().isoformat(),
+            "tipo": "datos_incompletos",
+            "mensaje": (
+                "La web usa estados de tarjeta que el scraper no conoce: "
+                f"{', '.join(sorted(newpadel_imagenes_desconocidas))}. "
+                "Esas franjas se han marcado como «ocupadas» por seguridad. "
+                "Revisa qué significan (p. ej. partida abierta, cerrada o del club)."
             ),
         })
 

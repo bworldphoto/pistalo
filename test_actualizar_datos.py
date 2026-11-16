@@ -36,6 +36,7 @@ from datetime import date
 
 sys.path.insert(0, ".")
 from actualizar_datos import (
+    PISTAS_MINIMAS_ESPERADAS,
     MatchpointClient,
     matchpoint_combinado_parsear,
     matchpoint_parsear,
@@ -43,6 +44,8 @@ from actualizar_datos import (
     paiporta_parsear,
     tupadel_parsear,
     sedavi_parsear,
+    newpadel_parsear,
+    newpadel_imagenes_desconocidas,
     agrupar_por_pista,
     _numero_pista,
     _normalizar_nombre_pista,
@@ -607,6 +610,103 @@ class TestVerificacionServidor(unittest.TestCase):
         self.assertEqual([x for x in f if x.get("_verif")], [])
         self.assertIsNone(_franja(f, "Pista 2", "08:00"))
         self.assertIsNone(_franja(f, "Pista 4", "08:00"))
+
+
+# ----------------------------------------------------------------------
+# NEW PADEL CLUB (Aldaia) — HTML real copiado de #divajax el 16-11-2026 16:57
+# ----------------------------------------------------------------------
+_NP_DIA_REAL = [
+    (1, '0830', 'grey'), (2, '0900', 'grey'), (3, '0930', 'grey'), (1, '1000', 'grey'), (2, '1030', 'grey'),
+    (3, '1100', 'grey'), (1, '1130', 'grey'), (2, '1200', 'grey'), (3, '1230', 'grey'), (1, '1300', 'grey'),
+    (2, '1330', 'grey'), (3, '1400', 'grey'), (1, '1430', 'grey'), (2, '1500', 'grey'), (3, '1530', 'grey'),
+    (1, '1600', 'grey'), (2, '1630', 'grey'), (3, '1700', 'grey'), (1, '1730', 'roja'), (2, '1800', 'roja'),
+    (3, '1830', 'roja'), (1, '1900', 'verde'), (2, '1930', 'roja'), (3, '2000', 'roja'), (1, '2030', 'roja'),
+    (2, '2100', 'roja'), (3, '2130', 'verde'), (1, '2200', 'verde'), (2, '2230', 'verde'), (3, '2300', 'verde'),
+]
+
+
+def _np_tarjeta(pista, hhmm, img):
+    """Misma estructura que la web real (atributos copiados tal cual)."""
+    estilo = (f"margin-left:15.5px;margin-right:15.5px;width:223.66666666667px;"
+              f"background: url(imagenes/pistas-{img}.gif) repeat-y 0 32px;")
+    if img == "verde":
+        return (f'<div id="pista{pista}-{hhmm}" style="{estilo}" class="cuadros2 cursor" '
+                f'onclick="pista_ajax(&quot;{pista}-{hhmm}&quot;);"><div class="horario">{hhmm[:2]}:{hhmm[2:]}</div></div>')
+    if img == "roja":
+        return (f'<div id="pista{pista}-{hhmm}" style="{estilo}" class="cuadros"><div class="pistacoment">GRUPO ESCUELA NANDO</div>'
+                f'<div class="fotita1"><img src="/imagenes/usuarios/2.jpg"></div>'
+                f'<div class="nivel1"><span class="nivela">Jugador Privado</span><span class="nivelb">3.00</span></div>'
+                f'<div class="horario">{hhmm[:2]}:{hhmm[2:]}</div></div>')
+    return (f'<div id="pista{pista}-{hhmm}" style="{estilo}opacity:0.6;" class="cuadros">'
+            f'<div class="horario">{hhmm[:2]}:{hhmm[2:]}</div></div>')
+
+
+def _np_html(tarjetas=_NP_DIA_REAL, fecha="2026-11-16", con_fecha=True):
+    celdas = "".join(f"<tr><td>{_np_tarjeta(*c)}</td></tr>" for c in tarjetas)
+    campo = f'<input type="hidden" id="fechareserva" value="{fecha}">' if con_fecha else ""
+    return f'<div id="divajax"><table><tbody>{celdas}</tbody></table>{campo}</div>'
+
+
+class TestNewPadel(unittest.TestCase):
+    F = date(2026, 11, 16)
+
+    def setUp(self):
+        newpadel_imagenes_desconocidas.clear()
+
+    def test_dia_real_libres_exactos(self):
+        f = newpadel_parsear(_np_html(), self.F)
+        self.assertEqual(len(f), 30)
+        libres = sorted((x["pista"], x["hora_inicio"]) for x in f if x["libre"])
+        self.assertEqual(libres, [
+            ("Pista 1", "19:00"), ("Pista 1", "22:00"), ("Pista 2", "22:30"),
+            ("Pista 3", "21:30"), ("Pista 3", "23:00"),
+        ])
+        self.assertFalse(newpadel_imagenes_desconocidas)
+
+    def test_pasadas_y_con_partida_no_son_libres(self):
+        f = newpadel_parsear(_np_html(), self.F)
+        self.assertFalse(_franja(f, "Pista 1", "08:30")["libre"])   # grey: ya pasada
+        self.assertFalse(_franja(f, "Pista 1", "17:30")["libre"])   # roja: con partida
+
+    def test_duracion_90_min(self):
+        f = newpadel_parsear(_np_html(), self.F)
+        self.assertEqual(_franja(f, "Pista 1", "19:00")["hora_fin"], "20:30")
+        self.assertEqual(_franja(f, "Pista 3", "23:00")["hora_fin"], "00:30")
+
+    def test_no_se_guardan_datos_personales(self):
+        import json
+        dump = json.dumps(newpadel_parsear(_np_html(), self.F))
+        self.assertNotIn("Jugador", dump)
+        self.assertNotIn("NANDO", dump)
+
+    def test_agrupa_en_tres_pistas(self):
+        pistas = agrupar_por_pista(newpadel_parsear(_np_html(), self.F))
+        self.assertEqual([p["pista"] for p in pistas], ["Pista 1", "Pista 2", "Pista 3"])
+        self.assertEqual(len(pistas[0]["slots"]), 10)
+
+    def test_imagen_desconocida_es_ocupada_y_se_avisa(self):
+        f = newpadel_parsear(_np_html([(1, "1900", "azul")]), self.F)
+        self.assertFalse(f[0]["libre"])
+        self.assertEqual(newpadel_imagenes_desconocidas, {"azul"})
+
+    def test_verde_sin_onclick_no_es_libre(self):
+        html = _np_html([(1, "1900", "verde")]).replace(' onclick="pista_ajax(&quot;1-1900&quot;);"', "")
+        f = newpadel_parsear(html, self.F)
+        self.assertFalse(f[0]["libre"])
+        self.assertTrue(newpadel_imagenes_desconocidas)
+
+    def test_dia_distinto_al_pedido_no_se_etiqueta_mal(self):
+        with self.assertRaises(DiaNoDisponible):
+            newpadel_parsear(_np_html(fecha="2026-11-16"), date(2026, 11, 20))
+
+    def test_sin_tarjetas_o_sin_fecha_es_estructura_cambiada(self):
+        with self.assertRaises(EstructuraCambiada):
+            newpadel_parsear("<div id='divajax'></div>", self.F)
+        with self.assertRaises(EstructuraCambiada):
+            newpadel_parsear(_np_html(con_fecha=False), self.F)
+
+    def test_registrado_en_minimos(self):
+        self.assertEqual(PISTAS_MINIMAS_ESPERADAS["New Padel Club"], 3)
 
 
 if __name__ == "__main__":
