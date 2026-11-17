@@ -1,14 +1,7 @@
 {
   "actualizado_en": "2026-11-17",
-  "ultima_ejecucion_utc": "2026-11-17T17:10:08+00:00",
-  "errores": [
-    {
-      "club": "New Padel Club",
-      "fecha": "2026-11-18",
-      "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: HTTPSConnectionPool(host='www.newpadelclub.com', port=443): Read timed out. (read timeout=15)"
-    }
-  ],
+  "ultima_ejecucion_utc": "2026-11-17T17:39:21+00:00",
+  "errores": [],
   "por_fecha": {
     "2026-11-17": [
       {
@@ -2614,6 +2607,75 @@
         ]
       },
       {
+        "club": "New Padel Club",
+        "zona": "Aldaia, Valencia",
+        "url": "https://www.newpadelclub.com/partidas",
+        "real": true,
+        "pistas": [
+          {
+            "pista": "Pista 1",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "17:30",
+              "19:00"
+            ]
+          },
+          {
+            "pista": "Pista 2",
+            "tipo": "Cubierta",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "16:30",
+              "18:00",
+              "19:30"
+            ]
+          },
+          {
+            "pista": "Pista 3",
+            "tipo": "Cubierta",
+            "slots": [
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30",
+              "23:00"
+            ],
+            "ocupadas": [
+              "18:30",
+              "20:00"
+            ]
+          }
+        ]
+      },
+      {
         "club": "Polideportivo Verge del Carme — Beteró",
         "zona": "Beteró, Valencia",
         "url": "https://reservas.fhcv.es/Booking/Grid.aspx",
@@ -3077,7 +3139,6 @@
             "ocupadas": [
               "08:30",
               "10:00",
-              "11:30",
               "13:00",
               "14:30",
               "16:00"
@@ -11323,6 +11384,7 @@
               "22:30"
             ],
             "ocupadas": [
+              "09:00",
               "10:30",
               "12:00",
               "13:30",
@@ -11349,6 +11411,7 @@
             ],
             "ocupadas": [
               "09:00",
+              "10:30",
               "12:00",
               "13:30",
               "15:00",
@@ -13625,11 +13688,10 @@
               "20:30",
               "21:00"
             ],
-            "ocupadas": [],
+            "ocupadas": [
+              "08:30"
+            ],
             "duraciones": {
-              "08:30": [
-                90
-              ],
               "10:00": [
                 90
               ],
