@@ -1,24 +1,12 @@
 {
   "actualizado_en": "2026-11-20",
-  "ultima_ejecucion_utc": "2026-11-20T18:40:40+00:00",
+  "ultima_ejecucion_utc": "2026-11-20T19:08:07+00:00",
   "errores": [
-    {
-      "club": "Padel Paiporta",
-      "fecha": "2026-11-20",
-      "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: HTTPSConnectionPool(host='www.padelpaiporta.com', port=443): Read timed out. (read timeout=10)"
-    },
     {
       "club": "New Padel Club",
       "fecha": "2026-11-20",
       "tipo": "conexión",
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=0"
-    },
-    {
-      "club": "Padel Paiporta",
-      "fecha": "2026-11-21",
-      "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: HTTPSConnectionPool(host='www.padelpaiporta.com', port=443): Read timed out. (read timeout=10)"
     },
     {
       "club": "New Padel Club",
@@ -27,22 +15,10 @@
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=1"
     },
     {
-      "club": "Padel Paiporta",
-      "fecha": "2026-11-22",
-      "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: HTTPSConnectionPool(host='www.padelpaiporta.com', port=443): Read timed out. (read timeout=10)"
-    },
-    {
       "club": "New Padel Club",
       "fecha": "2026-11-22",
       "tipo": "conexión",
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=2"
-    },
-    {
-      "club": "Padel Paiporta",
-      "fecha": "2026-11-23",
-      "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: HTTPSConnectionPool(host='www.padelpaiporta.com', port=443): Read timed out. (read timeout=10)"
     },
     {
       "club": "New Padel Club",
@@ -51,34 +27,16 @@
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=3"
     },
     {
-      "club": "Padel Paiporta",
-      "fecha": "2026-11-24",
-      "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: HTTPSConnectionPool(host='www.padelpaiporta.com', port=443): Read timed out. (read timeout=10)"
-    },
-    {
       "club": "New Padel Club",
       "fecha": "2026-11-24",
       "tipo": "conexión",
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=4"
     },
     {
-      "club": "Padel Paiporta",
-      "fecha": "2026-11-25",
-      "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: HTTPSConnectionPool(host='www.padelpaiporta.com', port=443): Read timed out. (read timeout=10)"
-    },
-    {
       "club": "New Padel Club",
       "fecha": "2026-11-25",
       "tipo": "conexión",
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=5"
-    },
-    {
-      "club": "Padel Paiporta",
-      "fecha": "2026-11-26",
-      "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: HTTPSConnectionPool(host='www.padelpaiporta.com', port=443): Read timed out. (read timeout=10)"
     },
     {
       "club": "New Padel Club",
@@ -89,6 +47,156 @@
   ],
   "por_fecha": {
     "2026-11-20": [
+      {
+        "club": "Padel Paiporta",
+        "zona": "Paiporta, Valencia",
+        "url": "https://www.padelpaiporta.com/",
+        "real": true,
+        "pistas": [
+          {
+            "pista": "Pista 1",
+            "tipo": "Cubierta",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30"
+            ]
+          },
+          {
+            "pista": "Pista 2",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "09:30",
+              "11:00",
+              "12:30",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00"
+            ]
+          },
+          {
+            "pista": "Pista 3",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "09:30",
+              "11:00",
+              "12:30",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00"
+            ]
+          },
+          {
+            "pista": "Pista 4",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "08:30",
+              "10:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30"
+            ]
+          },
+          {
+            "pista": "Pista 5",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "10:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30"
+            ]
+          },
+          {
+            "pista": "Pista Exterior",
+            "tipo": "Exterior",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "16:30",
+              "18:00",
+              "19:30"
+            ]
+          }
+        ]
+      },
       {
         "club": "Tu Padel Valencia — Picanya",
         "zona": "Picanya, Valencia",
@@ -1918,6 +2026,136 @@
     ],
     "2026-11-21": [
       {
+        "club": "Padel Paiporta",
+        "zona": "Paiporta, Valencia",
+        "url": "https://www.padelpaiporta.com/",
+        "real": true,
+        "pistas": [
+          {
+            "pista": "Pista 1",
+            "tipo": "Cubierta",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "09:00",
+              "18:00",
+              "19:30"
+            ]
+          },
+          {
+            "pista": "Pista 2",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "17:00",
+              "18:30"
+            ]
+          },
+          {
+            "pista": "Pista 3",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "17:00",
+              "18:30"
+            ]
+          },
+          {
+            "pista": "Pista 4",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "08:30",
+              "17:30",
+              "19:00"
+            ]
+          },
+          {
+            "pista": "Pista 5",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "17:30",
+              "19:00"
+            ]
+          },
+          {
+            "pista": "Pista Exterior",
+            "tipo": "Exterior",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "18:00",
+              "19:30"
+            ]
+          }
+        ]
+      },
+      {
         "club": "Tu Padel Valencia — Picanya",
         "zona": "Picanya, Valencia",
         "url": "https://www.tupadelvalencia.com/Partidas_Padel.aspx",
@@ -2646,7 +2884,6 @@
             ],
             "ocupadas": [
               "08:30",
-              "10:00",
               "11:30",
               "13:00",
               "14:30",
@@ -2757,6 +2994,7 @@
               "15:00",
               "16:30",
               "18:00",
+              "19:30",
               "21:00",
               "22:30"
             ]
@@ -3647,6 +3885,142 @@
       }
     ],
     "2026-11-22": [
+      {
+        "club": "Padel Paiporta",
+        "zona": "Paiporta, Valencia",
+        "url": "https://www.padelpaiporta.com/",
+        "real": true,
+        "pistas": [
+          {
+            "pista": "Pista 1",
+            "tipo": "Cubierta",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "18:00"
+            ]
+          },
+          {
+            "pista": "Pista 2",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "09:30",
+              "11:00",
+              "12:30",
+              "17:00"
+            ]
+          },
+          {
+            "pista": "Pista 3",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "09:30",
+              "11:00",
+              "12:30",
+              "17:00"
+            ]
+          },
+          {
+            "pista": "Pista 4",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "17:30"
+            ]
+          },
+          {
+            "pista": "Pista 5",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "08:30",
+              "10:00",
+              "11:30"
+            ]
+          },
+          {
+            "pista": "Pista Exterior",
+            "tipo": "Exterior",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": []
+          }
+        ]
+      },
       {
         "club": "Tu Padel Valencia — Picanya",
         "zona": "Picanya, Valencia",
@@ -5296,15 +5670,14 @@
               "20:30",
               "21:00"
             ],
-            "ocupadas": [],
+            "ocupadas": [
+              "11:30"
+            ],
             "duraciones": {
               "08:30": [
                 90
               ],
               "10:00": [
-                90
-              ],
-              "11:30": [
                 90
               ],
               "13:00": [
@@ -6036,6 +6409,148 @@
     ],
     "2026-11-23": [
       {
+        "club": "Padel Paiporta",
+        "zona": "Paiporta, Valencia",
+        "url": "https://www.padelpaiporta.com/",
+        "real": true,
+        "pistas": [
+          {
+            "pista": "Pista 1",
+            "tipo": "Cubierta",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "09:00",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30"
+            ]
+          },
+          {
+            "pista": "Pista 2",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00"
+            ]
+          },
+          {
+            "pista": "Pista 3",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "09:30",
+              "11:00",
+              "17:00",
+              "18:30",
+              "20:00"
+            ]
+          },
+          {
+            "pista": "Pista 4",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30"
+            ]
+          },
+          {
+            "pista": "Pista 5",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30"
+            ]
+          },
+          {
+            "pista": "Pista Exterior",
+            "tipo": "Exterior",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "19:30"
+            ]
+          }
+        ]
+      },
+      {
         "club": "Tu Padel Valencia — Picanya",
         "zona": "Picanya, Valencia",
         "url": "https://www.tupadelvalencia.com/Partidas_Padel.aspx",
@@ -6660,7 +7175,6 @@
             "tipo": "Exterior",
             "slots": [
               "08:30",
-              "09:00",
               "09:30",
               "10:00",
               "10:30",
@@ -6689,8 +7203,6 @@
               "22:30"
             ],
             "ocupadas": [
-              "09:00",
-              "09:30",
               "10:00",
               "10:30",
               "11:00",
@@ -6710,6 +7222,9 @@
             ],
             "duraciones": {
               "08:30": [
+                60
+              ],
+              "09:30": [
                 60
               ],
               "11:30": [
@@ -8634,6 +9149,158 @@
       }
     ],
     "2026-11-24": [
+      {
+        "club": "Padel Paiporta",
+        "zona": "Paiporta, Valencia",
+        "url": "https://www.padelpaiporta.com/",
+        "real": true,
+        "pistas": [
+          {
+            "pista": "Pista 1",
+            "tipo": "Cubierta",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "10:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00"
+            ]
+          },
+          {
+            "pista": "Pista 2",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "09:30",
+              "11:00",
+              "12:30",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00"
+            ]
+          },
+          {
+            "pista": "Pista 3",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "09:30",
+              "11:00",
+              "15:30",
+              "17:00",
+              "18:30"
+            ]
+          },
+          {
+            "pista": "Pista 4",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30"
+            ]
+          },
+          {
+            "pista": "Pista 5",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "10:00",
+              "11:30",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30"
+            ]
+          },
+          {
+            "pista": "Pista Exterior",
+            "tipo": "Exterior",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "16:30",
+              "18:00",
+              "19:30"
+            ]
+          }
+        ]
+      },
       {
         "club": "Tu Padel Valencia — Picanya",
         "zona": "Picanya, Valencia",
@@ -11214,6 +11881,155 @@
     ],
     "2026-11-25": [
       {
+        "club": "Padel Paiporta",
+        "zona": "Paiporta, Valencia",
+        "url": "https://www.padelpaiporta.com/",
+        "real": true,
+        "pistas": [
+          {
+            "pista": "Pista 1",
+            "tipo": "Cubierta",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00"
+            ]
+          },
+          {
+            "pista": "Pista 2",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "18:30",
+              "20:00",
+              "21:30"
+            ]
+          },
+          {
+            "pista": "Pista 3",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "09:30",
+              "11:00",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ]
+          },
+          {
+            "pista": "Pista 4",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "08:30",
+              "10:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ]
+          },
+          {
+            "pista": "Pista 5",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "08:30",
+              "10:00",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30"
+            ]
+          },
+          {
+            "pista": "Pista Exterior",
+            "tipo": "Exterior",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "18:00",
+              "19:30",
+              "21:00"
+            ]
+          }
+        ]
+      },
+      {
         "club": "Tu Padel Valencia — Picanya",
         "zona": "Picanya, Valencia",
         "url": "https://www.tupadelvalencia.com/Partidas_Padel.aspx",
@@ -11259,7 +12075,8 @@
             "ocupadas": [
               "09:30",
               "15:30",
-              "20:00"
+              "20:00",
+              "21:30"
             ]
           },
           {
@@ -13337,7 +14154,9 @@
               "21:30",
               "23:00"
             ],
-            "ocupadas": [],
+            "ocupadas": [
+              "18:30"
+            ],
             "duraciones": {
               "08:00": [
                 60,
@@ -13398,9 +14217,6 @@
                 90
               ],
               "17:00": [
-                90
-              ],
-              "18:30": [
                 90
               ],
               "20:00": [
@@ -13864,6 +14680,154 @@
       }
     ],
     "2026-11-26": [
+      {
+        "club": "Padel Paiporta",
+        "zona": "Paiporta, Valencia",
+        "url": "https://www.padelpaiporta.com/",
+        "real": true,
+        "pistas": [
+          {
+            "pista": "Pista 1",
+            "tipo": "Cubierta",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "09:00",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00"
+            ]
+          },
+          {
+            "pista": "Pista 2",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "09:30",
+              "11:00",
+              "12:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ]
+          },
+          {
+            "pista": "Pista 3",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:00",
+              "09:30",
+              "11:00",
+              "12:30",
+              "14:00",
+              "15:30",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ],
+            "ocupadas": [
+              "09:30",
+              "11:00",
+              "17:00",
+              "18:30",
+              "20:00",
+              "21:30"
+            ]
+          },
+          {
+            "pista": "Pista 4",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "10:00",
+              "11:30",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ]
+          },
+          {
+            "pista": "Pista 5",
+            "tipo": "Cubierta",
+            "slots": [
+              "08:30",
+              "10:00",
+              "11:30",
+              "13:00",
+              "14:30",
+              "16:00",
+              "17:30",
+              "19:00",
+              "20:30",
+              "22:00"
+            ],
+            "ocupadas": [
+              "10:00",
+              "14:30",
+              "16:00",
+              "19:00",
+              "20:30"
+            ]
+          },
+          {
+            "pista": "Pista Exterior",
+            "tipo": "Exterior",
+            "slots": [
+              "09:00",
+              "10:30",
+              "12:00",
+              "13:30",
+              "15:00",
+              "16:30",
+              "18:00",
+              "19:30",
+              "21:00",
+              "22:30"
+            ],
+            "ocupadas": [
+              "18:00",
+              "19:30"
+            ]
+          }
+        ]
+      },
       {
         "club": "Tu Padel Valencia — Picanya",
         "zona": "Picanya, Valencia",
