@@ -1,48 +1,48 @@
 {
   "actualizado_en": "2026-11-20",
-  "ultima_ejecucion_utc": "2026-11-20T13:38:54+00:00",
+  "ultima_ejecucion_utc": "2026-11-20T14:08:45+00:00",
   "errores": [
     {
       "club": "New Padel Club",
       "fecha": "2026-11-20",
       "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://www.newpadelclub.com/partidas?diferencia=0"
+      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=0"
     },
     {
       "club": "New Padel Club",
       "fecha": "2026-11-21",
       "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://www.newpadelclub.com/partidas?diferencia=1"
+      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=1"
     },
     {
       "club": "New Padel Club",
       "fecha": "2026-11-22",
       "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://www.newpadelclub.com/partidas?diferencia=2"
+      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=2"
     },
     {
       "club": "New Padel Club",
       "fecha": "2026-11-23",
       "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://www.newpadelclub.com/partidas?diferencia=3"
+      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=3"
     },
     {
       "club": "New Padel Club",
       "fecha": "2026-11-24",
       "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://www.newpadelclub.com/partidas?diferencia=4"
+      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=4"
     },
     {
       "club": "New Padel Club",
       "fecha": "2026-11-25",
       "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://www.newpadelclub.com/partidas?diferencia=5"
+      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=5"
     },
     {
       "club": "New Padel Club",
       "fecha": "2026-11-26",
       "tipo": "conexión",
-      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://www.newpadelclub.com/partidas?diferencia=6"
+      "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=6"
     }
   ],
   "por_fecha": {
@@ -191,7 +191,8 @@
             ],
             "ocupadas": [
               "16:30",
-              "18:00"
+              "18:00",
+              "19:30"
             ]
           }
         ]
@@ -1080,6 +1081,7 @@
               "10:30",
               "12:00",
               "13:30",
+              "15:00",
               "16:30",
               "21:00"
             ]
@@ -1252,13 +1254,11 @@
               "13:30",
               "14:00",
               "14:30",
+              "15:00",
               "17:30",
               "19:30"
             ],
             "duraciones": {
-              "15:00": [
-                60
-              ],
               "16:00": [
                 90
               ],
@@ -1296,13 +1296,11 @@
               "13:00",
               "13:30",
               "14:00",
+              "15:00",
               "18:00",
               "19:30"
             ],
             "duraciones": {
-              "15:00": [
-                90
-              ],
               "16:30": [
                 90
               ],
@@ -1450,13 +1448,11 @@
               "13:30",
               "14:00",
               "14:30",
+              "15:00",
               "17:30",
               "19:30"
             ],
             "duraciones": {
-              "15:00": [
-                60
-              ],
               "16:00": [
                 90
               ],
@@ -1498,13 +1494,11 @@
               "13:00",
               "13:30",
               "14:00",
+              "15:00",
               "18:00",
               "19:30"
             ],
             "duraciones": {
-              "15:00": [
-                90
-              ],
               "16:30": [
                 90
               ],
@@ -1605,14 +1599,12 @@
               "13:00",
               "13:30",
               "14:00",
+              "15:00",
               "18:00",
               "19:30",
               "21:00"
             ],
             "duraciones": {
-              "15:00": [
-                90
-              ],
               "16:30": [
                 90
               ],
@@ -1661,13 +1653,11 @@
               "13:30",
               "14:00",
               "14:30",
+              "15:00",
               "19:00",
               "20:30"
             ],
             "duraciones": {
-              "15:00": [
-                60
-              ],
               "16:00": [
                 90
               ],
@@ -1712,13 +1702,11 @@
               "13:00",
               "13:30",
               "14:00",
+              "15:00",
               "18:00",
               "19:30"
             ],
             "duraciones": {
-              "15:00": [
-                90
-              ],
               "16:30": [
                 90
               ],
@@ -1823,13 +1811,11 @@
               "13:00",
               "13:30",
               "14:00",
+              "15:00",
               "16:30",
               "19:30"
             ],
             "duraciones": {
-              "15:00": [
-                90
-              ],
               "18:00": [
                 90
               ],
@@ -1878,13 +1864,11 @@
               "13:00",
               "13:30",
               "14:00",
+              "15:00",
               "17:00",
               "19:30"
             ],
             "duraciones": {
-              "15:00": [
-                90
-              ],
               "21:00": [
                 90
               ],
@@ -1917,15 +1901,12 @@
               "10:30",
               "12:00",
               "13:30",
+              "15:00",
               "17:00",
               "18:30",
               "20:00"
             ],
-            "duraciones": {
-              "15:00": [
-                90
-              ]
-            }
+            "duraciones": {}
           },
           {
             "pista": "Pista 2",
@@ -2057,15 +2038,13 @@
               "13:30",
               "14:00",
               "14:30",
+              "15:00",
               "16:30",
               "17:30",
               "18:30",
               "20:00"
             ],
             "duraciones": {
-              "15:00": [
-                90
-              ],
               "15:30": [
                 60
               ],
@@ -2459,7 +2438,9 @@
               "20:00",
               "21:30"
             ],
-            "ocupadas": []
+            "ocupadas": [
+              "11:00"
+            ]
           },
           {
             "pista": "Pista 8",
@@ -12832,6 +12813,7 @@
               "08:00",
               "09:30",
               "12:30",
+              "14:00",
               "15:30",
               "18:30",
               "20:00",
@@ -15807,6 +15789,7 @@
               "22:30"
             ],
             "ocupadas": [
+              "09:00",
               "10:30",
               "15:00",
               "16:30",
