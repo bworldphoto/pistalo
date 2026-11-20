@@ -1,50 +1,7 @@
 {
   "actualizado_en": "2026-11-20",
-  "ultima_ejecucion_utc": "2026-11-20T01:38:44+00:00",
-  "errores": [
-    {
-      "club": "Padel Sedaví",
-      "fecha": "2026-11-20",
-      "tipo": "datos_incompletos",
-      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
-    },
-    {
-      "club": "Padel Sedaví",
-      "fecha": "2026-11-21",
-      "tipo": "datos_incompletos",
-      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
-    },
-    {
-      "club": "Padel Sedaví",
-      "fecha": "2026-11-22",
-      "tipo": "datos_incompletos",
-      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
-    },
-    {
-      "club": "Padel Sedaví",
-      "fecha": "2026-11-23",
-      "tipo": "datos_incompletos",
-      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
-    },
-    {
-      "club": "Padel Sedaví",
-      "fecha": "2026-11-24",
-      "tipo": "datos_incompletos",
-      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
-    },
-    {
-      "club": "Padel Sedaví",
-      "fecha": "2026-11-25",
-      "tipo": "datos_incompletos",
-      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
-    },
-    {
-      "club": "Padel Sedaví",
-      "fecha": "2026-11-26",
-      "tipo": "datos_incompletos",
-      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
-    }
-  ],
+  "ultima_ejecucion_utc": "2026-11-20T01:47:47+00:00",
+  "errores": [],
   "por_fecha": {
     "2026-11-20": [
       {
