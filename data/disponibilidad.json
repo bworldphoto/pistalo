@@ -1,6 +1,6 @@
 {
   "actualizado_en": "2026-11-23",
-  "ultima_ejecucion_utc": "2026-11-23T06:09:25+00:00",
+  "ultima_ejecucion_utc": "2026-11-23T06:39:54+00:00",
   "errores": [
     {
       "club": "New Padel Club",
@@ -3781,7 +3781,6 @@
             ],
             "ocupadas": [
               "09:00",
-              "10:30",
               "13:30",
               "15:00",
               "16:30",
