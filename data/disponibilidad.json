@@ -1,12 +1,24 @@
 {
   "actualizado_en": "2026-11-27",
-  "ultima_ejecucion_utc": "2026-11-27T18:39:24+00:00",
+  "ultima_ejecucion_utc": "2026-11-27T19:08:04+00:00",
   "errores": [
+    {
+      "club": "Padel Sedaví",
+      "fecha": "2026-11-27",
+      "tipo": "datos_incompletos",
+      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
+    },
     {
       "club": "New Padel Club",
       "fecha": "2026-11-27",
       "tipo": "conexión",
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=0"
+    },
+    {
+      "club": "Padel Sedaví",
+      "fecha": "2026-11-28",
+      "tipo": "datos_incompletos",
+      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
     },
     {
       "club": "New Padel Club",
@@ -15,10 +27,22 @@
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=1"
     },
     {
+      "club": "Padel Sedaví",
+      "fecha": "2026-11-29",
+      "tipo": "datos_incompletos",
+      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
+    },
+    {
       "club": "New Padel Club",
       "fecha": "2026-11-29",
       "tipo": "conexión",
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=2"
+    },
+    {
+      "club": "Padel Sedaví",
+      "fecha": "2026-11-30",
+      "tipo": "datos_incompletos",
+      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
     },
     {
       "club": "New Padel Club",
@@ -27,16 +51,34 @@
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=3"
     },
     {
+      "club": "Padel Sedaví",
+      "fecha": "2026-12-01",
+      "tipo": "datos_incompletos",
+      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
+    },
+    {
       "club": "New Padel Club",
       "fecha": "2026-12-01",
       "tipo": "conexión",
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=4"
     },
     {
+      "club": "Padel Sedaví",
+      "fecha": "2026-12-02",
+      "tipo": "datos_incompletos",
+      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
+    },
+    {
       "club": "New Padel Club",
       "fecha": "2026-12-02",
       "tipo": "conexión",
       "mensaje": "No se pudo conectar con la web: 404 Client Error: Not Found for url: https://newpadelclub.com/partidas?diferencia=5"
+    },
+    {
+      "club": "Padel Sedaví",
+      "fecha": "2026-12-03",
+      "tipo": "datos_incompletos",
+      "mensaje": "no se ha encontrado ninguna pista en la página — probablemente la web ha cambiado su estructura HTML y el scraper ya no la reconoce."
     },
     {
       "club": "New Padel Club",
@@ -330,183 +372,7 @@
         "zona": "Sedaví, Valencia",
         "url": "https://www.padelsedavi.com/partidas/padel",
         "real": true,
-        "pistas": [
-          {
-            "pista": "Pista 1",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 2",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00"
-            ]
-          },
-          {
-            "pista": "Pista 3",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "11:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30"
-            ]
-          },
-          {
-            "pista": "Pista 4",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "10:00",
-              "16:00",
-              "17:30",
-              "19:00"
-            ]
-          },
-          {
-            "pista": "Pista 5",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:30",
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ],
-            "ocupadas": [
-              "10:30",
-              "16:30",
-              "18:00",
-              "19:30"
-            ]
-          },
-          {
-            "pista": "Pista 6",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:30",
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ],
-            "ocupadas": [
-              "10:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30"
-            ]
-          },
-          {
-            "pista": "Pista 7",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "11:00",
-              "14:00",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ]
-          },
-          {
-            "pista": "Pista 8",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "10:00",
-              "11:30",
-              "17:30",
-              "19:00"
-            ]
-          }
-        ]
+        "pistas": []
       },
       {
         "club": "Polideportivo Verge del Carme — Beteró",
@@ -1018,8 +884,7 @@
               "14:30",
               "16:00",
               "17:30",
-              "19:00",
-              "22:00"
+              "19:00"
             ]
           },
           {
@@ -1891,12 +1756,10 @@
               "14:00",
               "15:30",
               "17:00",
-              "18:30"
+              "18:30",
+              "20:00"
             ],
             "duraciones": {
-              "20:00": [
-                90
-              ],
               "21:30": [
                 90
               ]
@@ -1953,12 +1816,10 @@
               "12:30",
               "14:00",
               "16:30",
-              "18:30"
+              "18:30",
+              "20:00"
             ],
             "duraciones": {
-              "20:00": [
-                90
-              ],
               "21:30": [
                 90
               ]
@@ -1988,6 +1849,7 @@
               "17:30",
               "18:30",
               "19:30",
+              "20:00",
               "21:00",
               "21:30",
               "22:00",
@@ -2014,7 +1876,8 @@
               "16:30",
               "17:30",
               "18:30",
-              "19:30"
+              "19:30",
+              "20:00"
             ],
             "duraciones": {
               "21:00": [
@@ -2298,176 +2161,7 @@
         "zona": "Sedaví, Valencia",
         "url": "https://www.padelsedavi.com/partidas/padel",
         "real": true,
-        "pistas": [
-          {
-            "pista": "Pista 1",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "08:00",
-              "09:30",
-              "12:30",
-              "17:00",
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 2",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "08:00",
-              "09:30",
-              "12:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 3",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "17:00"
-            ]
-          },
-          {
-            "pista": "Pista 4",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "08:00",
-              "09:30",
-              "17:00",
-              "18:30"
-            ]
-          },
-          {
-            "pista": "Pista 5",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "12:30",
-              "17:00"
-            ]
-          },
-          {
-            "pista": "Pista 6",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "17:00"
-            ]
-          },
-          {
-            "pista": "Pista 7",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "08:00",
-              "09:30"
-            ]
-          },
-          {
-            "pista": "Pista 8",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": []
-          }
-        ]
+        "pistas": []
       },
       {
         "club": "Polideportivo Verge del Carme — Beteró",
@@ -2841,8 +2535,8 @@
               "21:30"
             ],
             "ocupadas": [
-              "08:00",
               "09:30",
+              "11:00",
               "12:30",
               "15:30",
               "18:30",
@@ -2865,7 +2559,6 @@
               "21:30"
             ],
             "ocupadas": [
-              "09:30",
               "11:00",
               "12:30",
               "14:00",
@@ -2890,7 +2583,6 @@
               "22:00"
             ],
             "ocupadas": [
-              "08:30",
               "10:00",
               "11:30",
               "14:30",
@@ -3018,7 +2710,6 @@
             ],
             "ocupadas": [
               "09:00",
-              "10:30",
               "12:00",
               "13:30",
               "16:30",
@@ -3287,6 +2978,7 @@
             "ocupadas": [
               "09:00",
               "12:00",
+              "13:30",
               "17:00"
             ],
             "duraciones": {
@@ -3294,9 +2986,6 @@
                 60
               ],
               "10:30": [
-                90
-              ],
-              "13:30": [
                 90
               ],
               "15:00": [
@@ -4145,7 +3834,8 @@
             "tipo": "Exterior",
             "slots": [
               "08:00",
-              "10:00",
+              "09:00",
+              "10:30",
               "12:00",
               "13:30",
               "15:00",
@@ -4162,12 +3852,16 @@
               "20:30",
               "21:00"
             ],
-            "ocupadas": [
-              "10:00"
-            ],
+            "ocupadas": [],
             "duraciones": {
               "08:00": [
                 60
+              ],
+              "09:00": [
+                90
+              ],
+              "10:30": [
+                90
               ],
               "12:00": [
                 90
@@ -4786,170 +4480,7 @@
         "zona": "Sedaví, Valencia",
         "url": "https://www.padelsedavi.com/partidas/padel",
         "real": true,
-        "pistas": [
-          {
-            "pista": "Pista 1",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "12:30",
-              "18:30"
-            ]
-          },
-          {
-            "pista": "Pista 2",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "11:00",
-              "18:30"
-            ]
-          },
-          {
-            "pista": "Pista 3",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "17:00",
-              "18:30"
-            ]
-          },
-          {
-            "pista": "Pista 4",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "11:00",
-              "18:30"
-            ]
-          },
-          {
-            "pista": "Pista 5",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "12:30",
-              "18:30"
-            ]
-          },
-          {
-            "pista": "Pista 6",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "17:00",
-              "18:30"
-            ]
-          },
-          {
-            "pista": "Pista 7",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "18:30"
-            ]
-          },
-          {
-            "pista": "Pista 8",
-            "tipo": "Cubierta",
-            "slots": [
-              "08:00",
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "18:30"
-            ]
-          }
-        ]
+        "pistas": []
       },
       {
         "club": "Polideportivo Verge del Carme — Beteró",
@@ -5968,13 +5499,11 @@
             ],
             "ocupadas": [
               "10:00",
+              "11:30",
               "18:30"
             ],
             "duraciones": {
               "08:30": [
-                90
-              ],
-              "11:30": [
                 90
               ],
               "13:00": [
@@ -6924,171 +6453,7 @@
         "zona": "Sedaví, Valencia",
         "url": "https://www.padelsedavi.com/partidas/padel",
         "real": true,
-        "pistas": [
-          {
-            "pista": "Pista 1",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 2",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "14:00",
-              "17:00",
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 3",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "14:30",
-              "19:00",
-              "20:30"
-            ]
-          },
-          {
-            "pista": "Pista 4",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "19:00",
-              "20:30"
-            ]
-          },
-          {
-            "pista": "Pista 5",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:30",
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ],
-            "ocupadas": [
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ]
-          },
-          {
-            "pista": "Pista 6",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:30",
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ],
-            "ocupadas": [
-              "18:00",
-              "19:30",
-              "21:00"
-            ]
-          },
-          {
-            "pista": "Pista 7",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "11:00",
-              "18:30"
-            ]
-          },
-          {
-            "pista": "Pista 8",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "10:00",
-              "11:30",
-              "17:30",
-              "19:00",
-              "20:30"
-            ]
-          }
-        ]
+        "pistas": []
       },
       {
         "club": "Polideportivo Verge del Carme — Beteró",
@@ -9607,169 +8972,7 @@
         "zona": "Sedaví, Valencia",
         "url": "https://www.padelsedavi.com/partidas/padel",
         "real": true,
-        "pistas": [
-          {
-            "pista": "Pista 1",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 2",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "17:00",
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 3",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "19:00",
-              "20:30"
-            ]
-          },
-          {
-            "pista": "Pista 4",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "19:00",
-              "20:30"
-            ]
-          },
-          {
-            "pista": "Pista 5",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:30",
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ],
-            "ocupadas": [
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ]
-          },
-          {
-            "pista": "Pista 6",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:30",
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ],
-            "ocupadas": [
-              "18:00",
-              "19:30",
-              "21:00"
-            ]
-          },
-          {
-            "pista": "Pista 7",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "11:00",
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 8",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "10:00",
-              "11:30",
-              "14:30",
-              "19:00",
-              "20:30"
-            ]
-          }
-        ]
+        "pistas": []
       },
       {
         "club": "Polideportivo Verge del Carme — Beteró",
@@ -12299,164 +11502,7 @@
         "zona": "Sedaví, Valencia",
         "url": "https://www.padelsedavi.com/partidas/padel",
         "real": true,
-        "pistas": [
-          {
-            "pista": "Pista 1",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 2",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 3",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "19:00",
-              "20:30"
-            ]
-          },
-          {
-            "pista": "Pista 4",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "19:00",
-              "20:30"
-            ]
-          },
-          {
-            "pista": "Pista 5",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:30",
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ],
-            "ocupadas": [
-              "18:00",
-              "19:30",
-              "21:00"
-            ]
-          },
-          {
-            "pista": "Pista 6",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:30",
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ],
-            "ocupadas": [
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ]
-          },
-          {
-            "pista": "Pista 7",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 8",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "19:00",
-              "20:30"
-            ]
-          }
-        ]
+        "pistas": []
       },
       {
         "club": "Polideportivo Verge del Carme — Beteró",
@@ -12561,8 +11607,8 @@
               "10:30",
               "11:00",
               "11:30",
+              "12:00",
               "12:30",
-              "13:00",
               "13:30",
               "14:00",
               "14:30",
@@ -12589,6 +11635,8 @@
               "10:00",
               "10:30",
               "11:00",
+              "11:30",
+              "12:00",
               "14:00",
               "14:30",
               "15:00",
@@ -12607,15 +11655,8 @@
               "21:30"
             ],
             "duraciones": {
-              "11:30": [
-                60,
-                90
-              ],
               "12:30": [
                 60
-              ],
-              "13:00": [
-                90
               ],
               "13:30": [
                 60
@@ -15002,170 +14043,7 @@
         "zona": "Sedaví, Valencia",
         "url": "https://www.padelsedavi.com/partidas/padel",
         "real": true,
-        "pistas": [
-          {
-            "pista": "Pista 1",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "17:00",
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 2",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "18:30",
-              "20:00"
-            ]
-          },
-          {
-            "pista": "Pista 3",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "19:00",
-              "20:30"
-            ]
-          },
-          {
-            "pista": "Pista 4",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "19:00"
-            ]
-          },
-          {
-            "pista": "Pista 5",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:30",
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ],
-            "ocupadas": [
-              "16:30",
-              "18:00",
-              "19:30"
-            ]
-          },
-          {
-            "pista": "Pista 6",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:30",
-              "12:00",
-              "13:30",
-              "15:00",
-              "16:30",
-              "18:00",
-              "19:30",
-              "21:00"
-            ],
-            "ocupadas": [
-              "18:00",
-              "19:30"
-            ]
-          },
-          {
-            "pista": "Pista 7",
-            "tipo": "Cubierta",
-            "slots": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ],
-            "ocupadas": [
-              "09:30",
-              "11:00",
-              "12:30",
-              "14:00",
-              "15:30",
-              "17:00",
-              "18:30",
-              "20:00",
-              "21:30"
-            ]
-          },
-          {
-            "pista": "Pista 8",
-            "tipo": "Cubierta",
-            "slots": [
-              "10:00",
-              "11:30",
-              "13:00",
-              "14:30",
-              "16:00",
-              "17:30",
-              "19:00",
-              "20:30",
-              "22:00"
-            ],
-            "ocupadas": [
-              "10:00",
-              "11:30",
-              "14:30",
-              "17:30",
-              "19:00"
-            ]
-          }
-        ]
+        "pistas": []
       },
       {
         "club": "Polideportivo Verge del Carme — Beteró",
